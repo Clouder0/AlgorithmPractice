@@ -1,0 +1,3 @@
+chase: https://pan-1251373297.cos.ap-guangzhou.myqcloud.com/problemDatas/%5B51nod%5D1.17/chase.zip
+map: https://pan-1251373297.cos.ap-guangzhou.myqcloud.com/problemDatas/%5B51nod%5D1.17/map.zip
+contest: https://pan-1251373297.cos.ap-guangzhou.myqcloud.com/problemDatas/%5B51nod%5D1.17/contest.zip

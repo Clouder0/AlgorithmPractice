@@ -78,4 +78,5 @@
     [
         "--disable=C,R,W",
     ],
+    "python.pythonPath": "D:\\Program Files\\Python3.8.1\\python.exe"
 }

@@ -49,7 +49,7 @@ void tarjan(int u)
             low[u] = _min(low[u], low[v]);
         }
         else if (vis[v])
-            low[u] = _min(low[u], low[v]);
+            low[u] = _min(low[u], dfn[v]);
     }
     if (dfn[u] == low[u])
     {

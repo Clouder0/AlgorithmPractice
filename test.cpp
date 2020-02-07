@@ -1,48 +1,62 @@
-#include<stdio.h>
-#include<vector>
-#include<algorithm>
+#include <iostream>
+#include <memory.h>
+#include <cstdio>
 using namespace std;
-
-const int N=10000086;
-
-int n,max_dep,vis[N],root;
+const int N = 100005;
+template <typename T>
+inline void read(T &r)
+{
+	static char c;
+	r = 0;
+	for (c = getchar(); c > '9' || c < '0'; c = getchar());
+	for (; c >= '0' && c <= '9'; r = (r << 1) + (r << 3) + (c ^ 48), c = getchar());
+}
+int n, dis[N], d, ans;
 struct node
 {
-    int to,next;
-}E[N];
+	int to, next;
+} E[N << 1];
 int head[N];
-inline void add(const int &x,const int &y)
+int tot;
+void addedge(int u, int v)
 {
-    static int tot = 0;
-    E[++tot] = (node){y,head[x]},head[x] = tot;
+	E[++tot] = (node){v, head[u]}, head[u] = tot;
+	E[++tot] = (node){u, head[v]}, head[v] = tot;
 }
 
-void dfs(int dep,int fa,int x)
+void dfs(int u, int f)
 {
-	max_dep=max(max_dep,dep);
-    for(int i = head[x];i;i=E[i].next)
-		if(E[i].to!=fa) dfs(dep+1,x,E[i].to);
+	if (dis[u] > d)
+		ans++;
+	for (int p = head[u]; p; p = E[p].next)
+	{
+		int v = E[p].to;
+		if (v == f)
+			continue;
+		dis[v] = dis[u] + 1;
+		dfs(v, u);
+	}
 }
-
 int main()
 {
-	scanf("%d",&n);
-	int a,b;
-	for(int i=1;i<=n;i++)
+	int T;
+	cin >> T;
+	while (T--)
 	{
-		scanf("%d%d",&a,&b);
-        add(i,a);
-        add(i,b);
-		vis[a]=1;
-		vis[b]=1;
-	}
-	for(int i=1;i<=n;i++)
-		if(!vis[i]) 
+		tot = 0;
+		memset(head, 0, sizeof(head));
+		read(n);
+		read(d);
+		int u, v;
+		for (int i = 1; i < n; i++)
 		{
-			root=i;
-			break;
+			read(u);
+			read(v);
+			addedge(u, v);
 		}
-	dfs(0,0,root);
-	printf("%d\n",max_dep);
+		ans = 0;
+		dfs(0, 0);
+		printf("%d\n", ans);
+	}
 	return 0;
 }

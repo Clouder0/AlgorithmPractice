@@ -1,243 +1,210 @@
-#include <algorithm>
-#include <iostream>
-#include <cstdlib>
-#include <cstring>
-#include <cstdio>
-#define Rint register int
-#define mem(a, b) memset(a, (b), sizeof(a))
-#define Temp template <typename T>
+#include <bits/stdc++.h>
+#define MAXN 100005
 using namespace std;
-typedef long long LL;
-Temp inline void read(T &x)
+int cnt, fst[MAXN], nxt[MAXN << 1], to[MAXN << 1], w[MAXN << 1], fr[MAXN << 1];
+int n, a[MAXN], t[MAXN << 2], tag[MAXN << 2], cov[MAXN << 2];
+int siz[MAXN], son[MAXN], dfn[MAXN], Index, top[MAXN], rk[MAXN], dep[MAXN], faz[MAXN];
+string s;
+void AddEdge(int u, int v, int c)
 {
-    x = 0;
-    T w = 1, ch = getchar();
-    while (!isdigit(ch) && ch != '-')
-        ch = getchar();
-    if (ch == '-')
-        w = -1, ch = getchar();
-    while (isdigit(ch))
-        x = (x << 3) + (x << 1) + (ch ^ '0'), ch = getchar();
-    x = x * w;
+    to[++cnt] = v;
+    nxt[cnt] = fst[u];
+    fst[u] = cnt;
+    w[cnt] = c;
+    fr[cnt] = u;
 }
-
-#define mid ((l + r) >> 1)
-#define lson rt << 1, l, mid
-#define rson rt << 1 | 1, mid + 1, r
-#define len (r - l + 1)
-
-const int maxn = 200000 + 10;
-int n, m, r, mod;
-//见题意
-int e, beg[maxn], nex[maxn], to[maxn], w[maxn], wt[maxn];
-//链式前向星数组，w[]、wt[]初始点权数组
-int a[maxn << 2], laz[maxn << 2];
-//线段树数组、lazy操作
-int son[maxn], id[maxn], fa[maxn], cnt, dep[maxn], siz[maxn], top[maxn];
-//son[]重儿子编号,id[]新编号,fa[]父亲节点,cnt dfs_clock/dfs序,dep[]深度,siz[]子树大小,top[]当前链顶端节点
-int res = 0;
-//查询答案
-
-inline void add(int x, int y)
-{ //链式前向星加边
-    to[++e] = y;
-    nex[e] = beg[x];
-    beg[x] = e;
-}
-//-------------------------------------- 以下为线段树
-inline void pushdown(int rt, int lenn)
+void Dfs1(int u)
 {
-    laz[rt << 1] += laz[rt];
-    laz[rt << 1 | 1] += laz[rt];
-    a[rt << 1] += laz[rt] * (lenn - (lenn >> 1));
-    a[rt << 1 | 1] += laz[rt] * (lenn >> 1);
-    a[rt << 1] %= mod;
-    a[rt << 1 | 1] %= mod;
-    laz[rt] = 0;
+    siz[u] = 1;
+    son[u] = 0;
+    for (int i = fst[u]; i; i = nxt[i])
+    {
+        int v = to[i];
+        if (v == faz[u])
+            continue;
+        faz[v] = u;
+        dep[v] = dep[u] + 1;
+        rk[v] = w[i];
+        Dfs1(v);
+        siz[u] += siz[v];
+        if (siz[son[u]] < siz[v])
+            son[u] = v;
+    }
 }
-
-inline void build(int rt, int l, int r)
+void Dfs2(int u, int rt)
 {
+    dfn[u] = ++Index;
+    top[u] = rt;
+    a[Index] = rk[u];
+    if (son[u])
+        Dfs2(son[u], rt);
+    for (int i = fst[u]; i; i = nxt[i])
+    {
+        int v = to[i];
+        if (v == faz[u] || v == son[u])
+            continue;
+        Dfs2(v, v);
+    }
+}
+void PushUp(int rt)
+{
+    t[rt] = max(t[rt << 1], t[rt << 1 | 1]);
+}
+void PushDown(int rt)
+{
+    if (~cov[rt])
+    {
+        cov[rt << 1] = cov[rt << 1 | 1] = cov[rt];
+        t[rt << 1] = t[rt << 1 | 1] = cov[rt];
+        tag[rt << 1] = tag[rt << 1 | 1] = 0;
+        cov[rt] = -1;
+    }
+    tag[rt << 1] += tag[rt];
+    tag[rt << 1 | 1] += tag[rt];
+    t[rt << 1] += tag[rt];
+    t[rt << 1 | 1] += tag[rt];
+    tag[rt] = 0;
+}
+void BuildSegmentTree(int rt, int l, int r)
+{
+    cov[rt] = -1;
     if (l == r)
     {
-        a[rt] = wt[l];
-        if (a[rt] > mod)
-            a[rt] %= mod;
+        t[rt] = a[l];
         return;
     }
-    build(lson);
-    build(rson);
-    a[rt] = (a[rt << 1] + a[rt << 1 | 1]) % mod;
+    int mid = l + r >> 1;
+    BuildSegmentTree(rt << 1, l, mid);
+    BuildSegmentTree(rt << 1 | 1, mid + 1, r);
+    PushUp(rt);
 }
-
-inline void query(int rt, int l, int r, int L, int R)
+void ModifyCover(int rt, int l, int r, int tl, int tr, int val)
 {
-    if (L <= l && r <= R)
+    if (tl <= l && r <= tr)
     {
-        res += a[rt];
-        res %= mod;
+        t[rt] = cov[rt] = val;
+        tag[rt] = 0;
         return;
     }
-    else
-    {
-        if (laz[rt])
-            pushdown(rt, len);
-        if (L <= mid)
-            query(lson, L, R);
-        if (R > mid)
-            query(rson, L, R);
-    }
+    PushDown(rt);
+    int mid = l + r >> 1;
+    if (tl <= mid)
+        ModifyCover(rt << 1, l, mid, tl, tr, val);
+    if (tr > mid)
+        ModifyCover(rt << 1 | 1, mid + 1, r, tl, tr, val);
+    PushUp(rt);
 }
-
-inline void update(int rt, int l, int r, int L, int R, int k)
+void ModifyAdd(int rt, int l, int r, int tl, int tr, int val)
 {
-    if (L <= l && r <= R)
+    if (tl <= l && r <= tr)
     {
-        laz[rt] += k;
-        a[rt] += k * len;
+        t[rt] += val;
+        tag[rt] += val;
+        return;
     }
-    else
-    {
-        if (laz[rt])
-            pushdown(rt, len);
-        if (L <= mid)
-            update(lson, L, R, k);
-        if (R > mid)
-            update(rson, L, R, k);
-        a[rt] = (a[rt << 1] + a[rt << 1 | 1]) % mod;
-    }
+    PushDown(rt);
+    int mid = l + r >> 1;
+    if (tl <= mid)
+        ModifyAdd(rt << 1, l, mid, tl, tr, val);
+    if (tr > mid)
+        ModifyAdd(rt << 1 | 1, mid + 1, r, tl, tr, val);
+    PushUp(rt);
 }
-//---------------------------------以上为线段树
-inline int qRange(int x, int y)
+int Query(int rt, int l, int r, int tl, int tr)
 {
-    int ans = 0;
-    while (top[x] != top[y])
-    { //当两个点不在同一条链上
-        if (dep[top[x]] < dep[top[y]])
-            swap(x, y); //把x点改为所在链顶端的深度更深的那个点
-        res = 0;
-        query(1, 1, n, id[top[x]], id[x]); //ans加上x点到x所在链顶端 这一段区间的点权和
-        ans += res;
-        ans %= mod;     //按题意取模
-        x = fa[top[x]]; //把x跳到x所在链顶端的那个点的上面一个点
-    }
-    //直到两个点处于一条链上
-    if (dep[x] > dep[y])
-        swap(x, y); //把x点深度更深的那个点
-    res = 0;
-    query(1, 1, n, id[x], id[y]); //这时再加上此时两个点的区间和即可
-    ans += res;
-    return ans % mod;
-}
-
-inline void updRange(int x, int y, int k)
-{ //同上
-    k %= mod;
-    while (top[x] != top[y])
-    {
-        if (dep[top[x]] < dep[top[y]])
-            swap(x, y);
-        update(1, 1, n, id[top[x]], id[x], k);
-        x = fa[top[x]];
-    }
-    if (dep[x] > dep[y])
-        swap(x, y);
-    update(1, 1, n, id[x], id[y], k);
-}
-
-inline int qSon(int x)
-{
-    res = 0;
-    query(1, 1, n, id[x], id[x] + siz[x] - 1); //子树区间右端点为id[x]+siz[x]-1
+    if (tl <= l && r <= tr)
+        return t[rt];
+    PushDown(rt);
+    int mid = l + r >> 1, res = 0;
+    if (tl <= mid)
+        res = max(res, Query(rt << 1, l, mid, tl, tr));
+    if (tr > mid)
+        res = max(res, Query(rt << 1 | 1, mid + 1, r, tl, tr));
     return res;
 }
-
-inline void updSon(int x, int k)
-{ //同上
-    update(1, 1, n, id[x], id[x] + siz[x] - 1, k);
-}
-
-inline void dfs1(int x, int f, int deep)
-{                    //x当前节点，f父亲，deep深度
-    dep[x] = deep;   //标记每个点的深度
-    fa[x] = f;       //标记每个点的父亲
-    siz[x] = 1;      //标记每个非叶子节点的子树大小
-    int maxson = -1; //记录重儿子的儿子数
-    for (Rint i = beg[x]; i; i = nex[i])
+void ModifyCoverOnTree(int u, int v, int val)
+{
+    while (top[u] != top[v])
     {
-        int y = to[i];
-        if (y == f)
-            continue;         //若为父亲则continue
-        dfs1(y, x, deep + 1); //dfs其儿子
-        siz[x] += siz[y];     //把它的儿子数加到它身上
-        if (siz[y] > maxson)
-            son[x] = y, maxson = siz[y]; //标记每个非叶子节点的重儿子编号
+        if (dep[top[u]] < dep[top[v]])
+            swap(u, v);
+        ModifyCover(1, 1, n, dfn[top[u]], dfn[u], val);
+        u = faz[top[u]];
     }
+    if (dep[u] > dep[v])
+        swap(u, v);
+    ModifyCover(1, 1, n, dfn[u] + 1, dfn[v], val);
 }
-
-inline void dfs2(int x, int topf)
-{                   //x当前节点，topf当前链的最顶端的节点
-    id[x] = ++cnt;  //标记每个点的新编号
-    wt[cnt] = w[x]; //把每个点的初始值赋到新编号上来
-    top[x] = topf;  //这个点所在链的顶端
-    if (!son[x])
-        return;         //如果没有儿子则返回
-    dfs2(son[x], topf); //按先处理重儿子，再处理轻儿子的顺序递归处理
-    for (Rint i = beg[x]; i; i = nex[i])
+void ModifyAddOnTree(int u, int v, int val)
+{
+    while (top[u] != top[v])
     {
-        int y = to[i];
-        if (y == fa[x] || y == son[x])
-            continue;
-        dfs2(y, y); //对于每一个轻儿子都有一条从它自己开始的链
+        if (dep[top[u]] < dep[top[v]])
+            swap(u, v);
+        ModifyAdd(1, 1, n, dfn[top[u]], dfn[u], val);
+        u = faz[top[u]];
     }
+    if (dep[u] > dep[v])
+        swap(u, v);
+    ModifyAdd(1, 1, n, dfn[u] + 1, dfn[v], val);
 }
-
+int QueryMaxnOnTree(int u, int v)
+{
+    int res = 0;
+    while (top[u] != top[v])
+    {
+        if (dep[top[u]] < dep[top[v]])
+            swap(u, v);
+        res = max(res, Query(1, 1, n, dfn[top[u]], dfn[u]));
+        u = faz[top[u]];
+    }
+    if (dep[u] > dep[v])
+        swap(u, v);
+    res = max(res, Query(1, 1, n, dfn[u] + 1, dfn[v]));
+    return res;
+}
 int main()
 {
-    read(n);
-    read(m);
-    read(r);
-    read(mod);
-    for (Rint i = 1; i <= n; i++)
-        read(w[i]);
-    for (Rint i = 1; i < n; i++)
+    scanf("%d", &n);
+    for (int i = 1; i < n; i++)
     {
-        int a, b;
-        read(a);
-        read(b);
-        add(a, b);
-        add(b, a);
+        int x, y, z;
+        scanf("%d %d %d", &x, &y, &z);
+        AddEdge(x, y, z);
+        AddEdge(y, x, z);
     }
-    dfs1(r, 0, 1);
-    dfs2(r, r);
-    build(1, 1, n);
-    while (m--)
+    Dfs1(1);
+    Dfs2(1, 1);
+    BuildSegmentTree(1, 1, n);
+    while (1)
     {
-        int k, x, y, z;
-        read(k);
-        if (k == 1)
-        {
-            read(x);
-            read(y);
-            read(z);
-            updRange(x, y, z);
-        }
-        else if (k == 2)
-        {
-            read(x);
-            read(y);
-            printf("%d\n", qRange(x, y));
-        }
-        else if (k == 3)
-        {
-            read(x);
-            read(y);
-            updSon(x, y);
-        }
+        int x, y, z;
+        cin >> s;
+        if (s == "Stop")
+            break;
         else
         {
-            read(x);
-            printf("%d\n", qSon(x));
+            scanf("%d %d", &x, &y);
+            if (s == "Change")
+            {
+                x <<= 1;
+                int u = fr[x], v = to[x];
+                if (dep[u] > dep[v])
+                    swap(u, v);
+                ModifyCoverOnTree(u, v, y);
+            }
+            else if (s == "Cover")
+            {
+                scanf("%d", &z);
+                ModifyCoverOnTree(x, y, z);
+            }
+            else if (s == "Add")
+            {
+                scanf("%d", &z);
+                ModifyAddOnTree(x, y, z);
+            }
+            else if (s == "Max")
+                printf("%d\n", QueryMaxnOnTree(x, y));
         }
     }
     return 0;

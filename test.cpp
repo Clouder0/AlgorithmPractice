@@ -1,112 +1,63 @@
-#include<bits/stdc++.h>
+#include <algorithm>
+#include <iostream>
+#include <cstdio>
+#define N 100005
 using namespace std;
-int head[40005],cnt;
-int n,m,tot;
-double x[205],y[205],dis[2052];
-double dist(double a,double b,double c,double d){return sqrt((a-c)*(a-c)+(b-d)*(b-d));}//计算两点距离
 struct node
 {
-    int to,next;
-    double v;
-}edge[40005];
-void add(int x,int y,double w)
+    int u, v, l, col;
+} a[N], b[N];
+bool comp(node aa, node bb)
 {
-    cnt++;
-    edge[cnt].to=y;
-    edge[cnt].v=w;
-    edge[cnt].next=head[x];
-    head[x]=cnt;
-}//邻接表
-struct nd
+    return aa.l == bb.l ? aa.col < bb.col : aa.l < bb.l;
+}
+int f[N], n, m, ned;
+int get_f(int now)
 {
-    double dist,g;
-    int id;
-    bool vis[205];
-    nd()
+    return now == f[now] ? f[now] : f[now] = get_f(f[now]);
+}
+
+int l = -100, r = 100, ans, us;
+bool canit(int mid)
+{
+    int tot = ans = 0, get = 0;
+    for (int i = 1; i <= m; ++i)
     {
-        memset(vis,0,sizeof(vis));
+        b[i] = a[i];
+        if (a[i].col == 0)
+            b[i].l += mid;
     }
-};//dist就是f(x），g就是估价，还要开一个vis数组判重，否则只有70分
-
-bool in[205];
-int tot;
-queue<int> qq;
-priority_queue<nd> q;
-
-bool operator<(nd x,nd y){ return x.dist+x.g>y.dist+y.g;}//优先队列大于号是升序（和sort的cmp函数不同）
-
+    sort(b + 1, b + m + 1, comp);
+    for (int i = 1; i <= n; ++i)
+        f[i] = i;
+    for (int i = 1; i <= m; ++i)
+    {
+        int u = get_f(b[i].u), v = get_f(b[i].v);
+        if (u == v)
+            continue;
+        tot++;
+        f[u] = v;
+        ans += b[i].l;
+        get += b[i].col == 0;
+        if (tot + 1 == n)
+            break;
+    }
+    return get >= ned;
+}
 int main()
 {
-    cin>>n>>m;
-    for(int i=1;i<=n;i++)
-        cin>>x[i]>>y[i]； 
-    for(int i=1;i<=m;i++)
+    scanf("%d%d%d", &n, &m, &ned);
+    for (int i = 1; i <= m; ++i)
+        scanf("%d%d%d%d", &a[i].u, &a[i].v, &a[i].l, &a[i].col), a[i].u++, a[i].v++;
+    while (l <= r)
     {
-        int u,v;
-        cin>>u>>v;
-        double di=dist(x[u],y[u],x[v],y[v]);
-        add(u,v,di);
-        add(v,u,di);
+        int mid = (l + r) >> 1;
+        if (canit(mid))
+            l = mid + 1, us = mid;
+        else
+            r = mid - 1;
     }
-     in[n]=1;
-    qq.push(n);
-    for(int i=1;i<=n;i++) dis[i]=1e9;
-    dis[n]=0;
-    while(!qq.empty())//先以终点为起点，跑一边SPFA，求出每个点到终点的最短路，即估价
-    {
-        int d=qq.front();
-        in[d]=0;
-        qq.pop();
-        for(int i=head[d];i>0;i=edge[i].next)
-        {
-            int t=edge[i].to;
-            if(dis[t]==dis[d]+edge[i].v&&t==1)
-                tot++;
-            if(dis[t]>dis[d]+edge[i].v)
-            {
-                if(t==1) tot=1;
-                dis[t]=dis[d]+edge[i].v;
-
-                if(!in[t])
-                {
-                    qq.push(t);
-                    in[t]=1;
-                }
-            }
-        }
-    } //模板，就不多说了
-    nd begin;
-    begin.dist=0;
-    begin.g=dis[1];
-    begin.id=1;//把起始状态入队
-
-    q.push(begin);
-    tot=0;
-    while(!q.empty())
-    {
-        nd d=q.top();
-        q.pop();
-        if(d.id==n)
-            tot++； //tot记录终点出队次数
-        if(tot==2)//如果第二次出队，就输出答案
-        {
-            printf("%.2lf",d.dist);
-            return 0;
-        }
-        int id=d.id;
-        nd next;//next就是下一个状态
-        for(int i=head[id];i;i=edge[i].next)
-        {
-            int t=edge[i].to;
-            if(d.vis[t]) continue;//别忘了判重
-            next=d;
-            next.vis[t]=1;
-            next.id=t;
-            next.g=dis[t];
-            next.dist=d.dist+edge[i].v;
-            q.push(next);
-        }   
-    }
-    cout<<-1;
+    canit(us);
+    printf("%d\n", ans - ned * us);
     return 0;
 }

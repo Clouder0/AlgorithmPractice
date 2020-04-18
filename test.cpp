@@ -1,63 +1,105 @@
-#include <algorithm>
-#include <iostream>
-#include <cstdio>
-#define N 100005
+#include "cstdio"
+#include "iostream"
+#include "cctype"
 using namespace std;
-struct node
+int heap_size, n;
+int heap[30001];
+inline int readint()
 {
-    int u, v, l, col;
-} a[N], b[N];
-bool comp(node aa, node bb)
-{
-    return aa.l == bb.l ? aa.col < bb.col : aa.l < bb.l;
-}
-int f[N], n, m, ned;
-int get_f(int now)
-{
-    return now == f[now] ? f[now] : f[now] = get_f(f[now]);
-}
-
-int l = -100, r = 100, ans, us;
-bool canit(int mid)
-{
-    int tot = ans = 0, get = 0;
-    for (int i = 1; i <= m; ++i)
+    char c = getchar();
+    while (!isdigit(c))
+        c = getchar();
+    int x = 0;
+    while (isdigit(c))
     {
-        b[i] = a[i];
-        if (a[i].col == 0)
-            b[i].l += mid;
+        x = x * 10 + c - '0';
+        c = getchar();
     }
-    sort(b + 1, b + m + 1, comp);
-    for (int i = 1; i <= n; ++i)
-        f[i] = i;
-    for (int i = 1; i <= m; ++i)
+    return x;
+}
+int buf[105];
+inline void writeint(int i)
+{
+    int p = 0;
+    if (i == 0)
+        p++;
+    else
+        while (i)
+        {
+            buf[p++] = i % 10;
+            i /= 10;
+        }
+    for (int j = p - 1; j >= 0; j--)
+        putchar('0' + buf[j]);
+}
+void swap(int &a, int &b)
+{
+    int t = a;
+    a = b;
+    b = t;
+}
+void put(int d)
+{
+    int now, next;
+    heap[++heap_size] = d;
+    now = heap_size;
+    while (now > 1)
     {
-        int u = get_f(b[i].u), v = get_f(b[i].v);
-        if (u == v)
-            continue;
-        tot++;
-        f[u] = v;
-        ans += b[i].l;
-        get += b[i].col == 0;
-        if (tot + 1 == n)
-            break;
+        next = now >> 1;
+        if (heap[now] >= heap[next])
+            return;
+        swap(heap[now], heap[next]);
+        now = next;
     }
-    return get >= ned;
+}
+int del()
+{
+    int now, next, res;
+    res = heap[1];
+    heap[1] = heap[heap_size--];
+    now = 1;
+    while (now * 2 <= heap_size)
+    {
+        next = now * 2;
+        if (next < heap_size && heap[next + 1] < heap[next])
+            next++;
+        if (heap[now] <= heap[next])
+            return res;
+        swap(heap[now], heap[next]);
+        now = next;
+    }
+}
+int get()
+{
+    return heap[1];
+}
+void work()
+{
+    n = readint();
+    for (int i = 1; i <= n; i++)
+    {
+        int x;
+        x = readint();
+        if (x == 1)
+        {
+            x = readint();
+            put(x);
+        }
+        else if (x == 2)
+        {
+            writeint(get());
+            putchar('\n');
+        }
+        else
+            del();
+        printf("Heap: ");
+        for(int i = 1;i<=heap_size;++i)
+            printf("%d ",heap[i]);
+        putchar('\n');
+    }
 }
 int main()
 {
-    scanf("%d%d%d", &n, &m, &ned);
-    for (int i = 1; i <= m; ++i)
-        scanf("%d%d%d%d", &a[i].u, &a[i].v, &a[i].l, &a[i].col), a[i].u++, a[i].v++;
-    while (l <= r)
-    {
-        int mid = (l + r) >> 1;
-        if (canit(mid))
-            l = mid + 1, us = mid;
-        else
-            r = mid - 1;
-    }
-    canit(us);
-    printf("%d\n", ans - ned * us);
+    work();
     return 0;
 }

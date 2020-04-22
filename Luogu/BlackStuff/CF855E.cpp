@@ -6,8 +6,10 @@ void read(T &r)
 {
     static char c;
     r = 0;
-    for (c = getchar(); c > '9' || c < '0'; c = getchar());
-    for (; c >= '0' && c <= '9'; r = (r << 1) + (r << 3) + (c ^ 48), c = getchar());
+    for (c = getchar(); c > '9' || c < '0'; c = getchar())
+        ;
+    for (; c >= '0' && c <= '9'; r = (r << 1) + (r << 3) + (c ^ 48), c = getchar())
+        ;
 }
 int q;
 long long b, l, r;
@@ -35,12 +37,12 @@ inline long long solve(long long x)
         num[++p] = x % b;
         x /= b;
     }
-    return dfs(p,true,true,0);
+    return dfs(p, true, true, 0);
 }
 int main()
 {
     read(q);
-    memset(f,-1,sizeof(f));
+    memset(f, -1, sizeof(f));
     while (q--)
     {
         read(b);

@@ -1,269 +1,231 @@
-
-#include <iostream>
 #include <cstdio>
-#include <cstring>
-#include <algorithm>
-using namespace std;
-
-const int N = 20000 + 10;
-
-inline int read()
+template <typename T>
+void read(T &r)
 {
-    int res = 0, f = 1;
-    char ch = getchar();
-    while (ch < '0' || ch > '9')
-    {
-        if (ch == '-')
-            f = -1;
-        ch = getchar();
-    }
-    if (f == -1)
-        while (ch >= '0' && ch <= '9')
-            res = (res << 3) + (res << 1) - (ch ^ 48), ch = getchar();
-    else
-        while (ch >= '0' && ch <= '9')
-            res = (res << 3) + (res << 1) + (ch ^ 48), ch = getchar();
-    return res;
+    static char c;
+    r = 0;
+    for (c = getchar(); c > '9' || c < '0'; c = getchar());
+    for (; c >= '0' && c <= '9'; r = (r << 1) + (r << 3) + (c ^ 48), c = getchar());
 }
+const int N = 30005;
+const int M = 60005;
+#define lc(x) (x << 1)
+#define rc(x) (x << 1 | 1)
 
-struct edge
-{
-    int next, to, w;
-} r[N << 1];
+void add(int, int, int);
+void dfs1(int);
+void dfs2(int);
+void build(int, int, int);
+void update(int, int, int);
+ll query(int, int);
 
-int head[N], tot;
-
-void add(int u, int v, int w)
-{
-    r[++tot] = (edge){head[u], v, w};
-    head[u] = tot;
-}
-
-int n, Q;
-
-int a[N], w[N], fa[N], son[N], size[N], top[N], id[N], dep[N], cnt;
-
-void dfs1(int u, int father)
-{
-    dep[u] = dep[father] + 1, fa[u] = father, size[u] = 1;
-    for (int e = head[u]; e; e = r[e].next)
-    {
-        int v = r[e].to;
-        if (v == father)
-            continue;
-        a[v] = r[e].w;
-        dfs1(v, u);
-        size[u] += size[v];
-        if (size[v] > size[son[u]])
-            son[u] = v;
-    }
-}
-
-void dfs2(int u, int topf)
-{
-    id[u] = ++cnt;
-    w[cnt] = a[u];
-    top[u] = topf;
-    if (!son[u])
-        return;
-    dfs2(son[u], topf);
-    for (int e = head[u]; e; e = r[e].next)
-    {
-        int v = r[e].to;
-        if (v == fa[u] || v == son[u])
-            continue;
-        dfs2(v, v);
-    }
-}
-
-struct Tree
-{
-    int sum, maxn, minn, lazy;
-} tree[N << 2];
-#define lson pos << 1
-#define rson pos << 1 | 1
-void pushup(int pos)
-{
-    tree[pos].sum = tree[lson].sum + tree[rson].sum;
-    tree[pos].maxn = max(tree[lson].maxn, tree[rson].maxn);
-    tree[pos].minn = min(tree[lson].minn, tree[rson].minn);
-}
-
-void pushdown(int pos)
-{
-    if (tree[pos].lazy == 1)
-        return;
-    tree[lson].lazy *= -1, tree[rson].lazy *= -1;
-    tree[lson].sum *= -1, tree[rson].sum *= -1;
-    int lmax = tree[lson].maxn, lmin = tree[lson].minn, rmax = tree[rson].maxn, rmin = tree[rson].minn;
-    tree[lson].maxn = -lmin, tree[lson].minn = -lmax;
-    tree[rson].maxn = -rmin, tree[rson].minn = -rmax;
-    tree[pos].lazy = 1;
-}
-
-void build(int pos, int l, int r)
-{
-    tree[pos].lazy = 1;
-    if (l == r)
-    {
-        tree[pos].sum = tree[pos].maxn = tree[pos].minn = w[l];
-        return;
-    }
-    int mid = (l + r) >> 1;
-    build(lson, l, mid);
-    build(rson, mid + 1, r);
-    pushup(pos);
-}
-
-void change1(int pos, int l, int r, int x, int k)
-{
-    if (l > x || r < x)
-        return;
-    if (l == x && r == x)
-    {
-        tree[pos].sum = tree[pos].maxn = tree[pos].minn = k;
-        return;
-    }
-    pushdown(pos);
-    int mid = (l + r) >> 1;
-    change1(lson, l, mid, x, k);
-    change1(rson, mid + 1, r, x, k);
-    pushup(pos);
-}
-
-void change2(int pos, int l, int r, int L, int R)
-{
-    if (l > R || r < L)
-        return;
-    if (l >= L && r <= R)
-    {
-        tree[pos].lazy *= -1;
-        tree[pos].sum *= -1;
-        int maxn = tree[pos].maxn, minn = tree[pos].minn;
-        tree[pos].maxn = -minn, tree[pos].minn = -maxn;
-        return;
-    }
-    pushdown(pos);
-    int mid = (l + r) >> 1;
-    change2(lson, l, mid, L, R);
-    change2(rson, mid + 1, r, L, R);
-    pushup(pos);
-}
-
-Tree query(int pos, int l, int r, int L, int R)
-{
-    if (l >= L && r <= R)
-        return tree[pos];
-    pushdown(pos);
-    int mid = (l + r) >> 1;
-    if (R <= mid)
-    {
-        Tree t = query(lson, l, mid, L, R);
-        //printf("L[%d],R[%d],minn[%d]\n",l,r,t.minn);
-        return t;
-    }
-    if (L > mid)
-    {
-        Tree t = query(rson, mid + 1, r, L, R);
-        //printf("L[%d],R[%d],minn[%d]\n",l,r,t.minn);
-        return t;
-    }
-    Tree t, t1 = query(lson, l, mid, L, R), t2 = query(rson, mid + 1, r, L, R);
-    t.sum = t1.sum + t2.sum;
-    t.maxn = max(t1.maxn, t2.maxn);
-    t.minn = min(t1.minn, t2.minn);
-    return t;
-}
-#undef lson
-#undef rson
-void Tchange(int x, int y)
-{
-    while (top[x] != top[y])
-    {
-        if (dep[top[x]] < dep[top[y]])
-            swap(x, y);
-        change2(1, 1, n, id[top[x]], id[x]);
-        x = fa[top[x]];
-    }
-    if (dep[x] > dep[y])
-        swap(x, y);
-    if (x != y)
-        change2(1, 1, n, id[x] + 1, id[y]);
-}
-
-Tree Tquery(int x, int y)
-{
-    Tree t, t1;
-    t.sum = 0, t.maxn = -1010, t.minn = 1010;
-    while (top[x] != top[y])
-    {
-        if (dep[top[x]] < dep[top[y]])
-            swap(x, y);
-        t1 = query(1, 1, n, id[top[x]], id[x]);
-        t.sum += t1.sum;
-        t.maxn = max(t.maxn, t1.maxn);
-        t.minn = min(t.minn, t1.minn);
-        printf("Debug: FROM [%d] to [%d], VALUE is [%d]\n",x,y,t1.minn);
-        x = fa[top[x]];
-    }
-    if (dep[x] > dep[y])
-        swap(x, y);
-    if (x != y)
-    {
-        t1 = query(1, 1, n, id[x] + 1, id[y]);
-        t.sum += t1.sum;
-        t.maxn = max(t.maxn, t1.maxn);
-        t.minn = min(t.minn, t1.minn);
-        printf("Debug: FROM [%d] to [%d], VALUE is [%d]\n",x,y,t1.minn);
-    }
-    return t;
-}
-
-string opt;
+int hed[N], nxt[M], to[M], val[M], id;
+int dep[N], fa[N], siz[N], son[N], top[N], ttl[N], ltt[N], tot;
+int vf[N];
+int xs[N];
+int sum[N << 2][10];
+bool tag[N << 2][10];
+int n, q;
 
 int main()
 {
-    n = read();
-    int u, v, w;
-    for (int i = 1; i < n; i++)
-        u = read() + 1, v = read() + 1, w = read(), add(u, v, w), add(v, u, w);
-    dfs1(1, 0), dfs2(1, 1), build(1, 1, n);
-    Q = read();
-    int ttt = 0;
-    while (Q--)
+    read(n), read(q);
+    for (int i = 1; i < n; ++i)
     {
-        cin >> opt;
-        if (opt == "C")
+        int u, v, w;
+        read(u), read(v), read(w);
+        add(u, v, w), add(v, u, w);
+    }
+    dfs1(1);
+    top[1] = 1;
+    dfs2(1);
+    build(1, 1, n);
+    for (int i = 1; i <= q; ++i)
+    {
+        int type;
+        read(type);
+        int u, v;
+        read(u), read(v);
+        switch (type)
         {
-            u = read() + 1, w = read();
-            change1(1, 1, n, id[u], w);
-        }
-        if (opt == "N")
-        {
-            u = read() + 1, v = read() + 1;
-            Tchange(u, v);
-        }
-        if (opt == "SUM")
-        {
-            u = read() + 1, v = read() + 1;
-            ++ttt;
-        printf("%d times: ",ttt);
-            printf("%d\n", Tquery(u, v).sum);
-        }
-        if (opt == "MIN")
-        {
-            u = read() + 1, v = read() + 1;
-            ++ttt;
-            printf("%d times: ",ttt);
-            printf("%d\n", Tquery(u, v).minn);
-        }
-        if (opt == "MAX")
-        {
-            u = read() + 1, v = read() + 1;
-            ++ttt;
-        printf("%d times: ",ttt);
-            printf("%d\n", Tquery(u, v).maxn);
+        case 1:
+            write(query(u, v)), EL;
+            break;
+        case 2:
+            int w;
+            read(w);
+            update(u, v, w);
+            break;
         }
     }
     return 0;
+}
+
+inline void add(int u, int v, int w)
+{
+    nxt[++id] = hed[u];
+    hed[u] = id;
+    to[id] = v;
+    val[id] = w;
+}
+void dfs1(int u)
+{
+    siz[u] = 1;
+    for (int i = hed[u]; i; i = nxt[i])
+    {
+        int v = to[i];
+        if (v != fa[u])
+        {
+            dep[v] = dep[u] + 1;
+            fa[v] = u;
+            xs[v] = xs[u] ^ val[i];
+            vf[v] = val[i];
+            dfs1(v);
+            siz[u] += siz[v];
+            if (siz[v] > siz[son[u]])
+            {
+                son[u] = v;
+            }
+        }
+    }
+}
+void dfs2(int u)
+{
+    ltt[ttl[u] = ++tot] = u;
+    if (son[u])
+    {
+        top[son[u]] = top[u];
+        dfs2(son[u]);
+    }
+    for (int i = hed[u]; i; i = nxt[i])
+    {
+        int v = to[i];
+        if (v != fa[u] && v != son[u])
+        {
+            top[v] = v;
+            dfs2(v);
+        }
+    }
+}
+inline void pushdown(int x, int xl, int xr, int bit)
+{
+    if (tag[x][bit])
+    {
+        int xm = (xl + xr) >> 1;
+        sum[lc(x)][bit] = (xm - xl + 1) - sum[lc(x)][bit];
+        sum[rc(x)][bit] = (xr - xm) - sum[rc(x)][bit];
+        tag[lc(x)][bit] ^= 1;
+        tag[rc(x)][bit] ^= 1;
+        tag[x][bit] = false;
+    }
+}
+inline void pushup(int x, int bit)
+{
+    sum[x][bit] = sum[lc(x)][bit] + sum[rc(x)][bit];
+}
+void update(int x, int xl, int xr, int bit, int ul, int ur)
+{
+    if (xl >= ul && xr <= ur)
+    {
+        sum[x][bit] = (xr - xl + 1) - sum[x][bit];
+        tag[x][bit] ^= 1;
+        return;
+    }
+    pushdown(x, xl, xr, bit);
+    int xm = (xl + xr) >> 1;
+    if (xm >= ul)
+    {
+        update(lc(x), xl, xm, bit, ul, ur);
+    }
+    if (xm < ur)
+    {
+        update(rc(x), xm + 1, xr, bit, ul, ur);
+    }
+    pushup(x, bit);
+}
+int query(int x, int xl, int xr, int bit, int ql, int qr)
+{
+    if (xl >= ql && xr <= qr)
+    {
+        return sum[x][bit];
+    }
+    pushdown(x, xl, xr, bit);
+    int xm = (xl + xr) >> 1;
+    int ans = 0;
+    if (xm >= ql)
+    {
+        ans += query(lc(x), xl, xm, bit, ql, qr);
+    }
+    if (xm < qr)
+    {
+        ans += query(rc(x), xm + 1, xr, bit, ql, qr);
+    }
+    return ans;
+}
+void build(int x, int xl, int xr)
+{
+    if (xl == xr)
+    {
+        for (int i = 0; i < 10; ++i)
+        {
+            sum[x][i] = (xs[ltt[xl]] >> i) & 1;
+        }
+        return;
+    }
+    int xm = (xl + xr) >> 1;
+    build(lc(x), xl, xm);
+    build(rc(x), xm + 1, xr);
+    for (int i = 0; i < 10; ++i)
+    {
+        pushup(x, i);
+    }
+}
+void update(int u, int v, int w)
+{
+    int x = dep[u] < dep[v] ? v : u;
+    for (int i = 0; i < 10; ++i)
+    {
+        if (((vf[x] ^ w) >> i) & 1)
+        {
+            update(1, 1, n, i, ttl[x], ttl[x] + siz[x] - 1);
+        }
+    }
+    vf[x] = w;
+}
+ll query(int u, int v)
+{
+    int cnt[10];
+    int siz = 0;
+    for (int i = 0; i < 10; ++i)
+    {
+        cnt[i] = 0;
+    }
+    while (top[u] ^ top[v])
+    {
+        if (dep[top[u]] < dep[top[v]])
+        {
+            u ^= v ^= u ^= v;
+        }
+        siz += ttl[u] - ttl[top[u]] + 1;
+        for (int i = 0; i < 10; ++i)
+        {
+            cnt[i] += query(1, 1, n, i, ttl[top[u]], ttl[u]);
+        }
+        u = fa[top[u]];
+    }
+    if (dep[u] < dep[v])
+    {
+        u ^= v ^= u ^= v;
+    }
+    siz += ttl[u] - ttl[v] + 1;
+    for (int i = 0; i < 10; ++i)
+    {
+        cnt[i] += query(1, 1, n, i, ttl[v], ttl[u]);
+    }
+    ll ans = 0;
+    for (int i = 0; i < 10; ++i)
+    {
+        ans += cnt[i] * (siz - cnt[i]) * 1ll * (1 << i);
+    }
+    return ans;
 }

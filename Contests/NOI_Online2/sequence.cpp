@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <map>
+#define int long long
 const int bufSize = 1e6;
 inline char nc()
 {
@@ -14,7 +15,7 @@ void read(T &r)
     for (c = nc(); c > '9' || c < '0'; c = nc());
     for (; c >= '0' && c <= '9'; r = (r << 1) + (r << 3) + (c ^ 48), c = nc());
 }
-const int maxn = 1e6;
+const int maxn = 1e6 + 10;
 const int mod = 1e9 + 7;
 int n;
 long long a[maxn];
@@ -23,8 +24,8 @@ int next[maxn];
 long long sum[maxn << 2], tag[maxn << 2], qsum[maxn << 2];
 inline void push_up(const int &p)
 {
-    qsum[p] = qsum[p << 1] + qsum[p << 1 | 1];
-    sum[p] = sum[p << 1] + sum[p << 1 | 1];
+    qsum[p] = (qsum[p << 1] + qsum[p << 1 | 1]) % mod;
+    sum[p] = (sum[p << 1] + sum[p << 1 | 1]) % mod;
 }
 inline void push_down(const int &l, const int &r, const int &p)
 {
@@ -33,22 +34,22 @@ inline void push_down(const int &l, const int &r, const int &p)
     int mid = l + r >> 1;
     tag[p << 1] = (tag[p << 1] + tag[p]) % mod;
     tag[p << 1 | 1] = (tag[p << 1 | 1] + tag[p]) % mod;
-    qsum[p << 1] = (qsum[p << 1] + (long long)tag[p] * tag[p] * (mid - l + 1)) % mod;
+    qsum[p << 1] = (qsum[p << 1] + ((tag[p] * tag[p]) % mod) * (mid - l + 1)) % mod;
     qsum[p << 1] = (qsum[p << 1] + tag[p] * 2 * sum[p << 1]) % mod;
-    qsum[p << 1 | 1] = (qsum[p << 1 | 1] + tag[p] * tag[p] * (r - mid)) % mod;
+    qsum[p << 1 | 1] = (qsum[p << 1 | 1] + ((tag[p] * tag[p]) % mod) * (r - mid)) % mod;
     qsum[p << 1 | 1] = (qsum[p << 1 | 1] + tag[p] * 2 * sum[p << 1 | 1]) % mod;
     sum[p << 1] = (sum[p << 1] + (mid - l + 1) * tag[p]) % mod;
     sum[p << 1 | 1] = (sum[p << 1 | 1] + (r - mid) * tag[p]) % mod;
     tag[p] = 0;
 }
-void modify(const int &l, const int &r, const int &p, const int &ll, const int &rr, const int &k)
+void modify(const int &l, const int &r, const int &p, const int &ll, const int &rr, const long long &k)
 {
     if (ll <= l && rr >= r)
     {
-        qsum[p] += k * k * (r - l + 1);
-        qsum[p] += k * 2 * sum[p];
-        sum[p] += (r - l + 1) * k;
-        tag[p] += k;
+        qsum[p] = (qsum[p] + (k * k % mod) * (r - l + 1)) % mod;
+        qsum[p] = (qsum[p] + k * 2 * sum[p]) % mod;
+        sum[p] = (sum[p] + (r - l + 1) * k) % mod;
+        tag[p] = (tag[p] + k) % mod;
         return;
     }
     push_down(l, r, p);
@@ -62,7 +63,7 @@ void modify(const int &l, const int &r, const int &p, const int &ll, const int &
 long long ask(const int &l, const int &r, const int &p, const int &ll, const int &rr)
 {
     if (ll <= l && rr >= r)
-        return qsum[p];
+        return qsum[p] % mod;
     push_down(l, r, p);
     int mid = l + r >> 1;
     long long ans = 0;
@@ -70,12 +71,12 @@ long long ask(const int &l, const int &r, const int &p, const int &ll, const int
         ans += ask(l, mid, p << 1, ll, rr);
     if (rr > mid)
         ans += ask(mid + 1, r, p << 1 | 1, ll, rr);
-    return ans;
+    return ans % mod;
 }
-int main()
+signed main()
 {
-    freopen("sequence.in", "r", stdin);
-    freopen("sequence.out", "w", stdout);
+    //freopen("sequence.in", "r", stdin);
+    //freopen("sequence.out", "w", stdout);
     read(n);
     for (int i = 1; i <= n; ++i)
         read(a[i]);

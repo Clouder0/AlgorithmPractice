@@ -18,8 +18,8 @@ long long gcd(long long x, long long y)
 }
 int main()
 {
-    freopen("color.in","r",stdin);
-    freopen("color.out","w",stdout);
+    //freopen("color.in","r",stdin);
+    //freopen("color.out","w",stdout);
     read(T);
     while (T--)
     {

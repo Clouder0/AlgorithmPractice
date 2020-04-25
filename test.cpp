@@ -1,231 +1,76 @@
-#include <cstdio>
-template <typename T>
-void read(T &r)
+#include <bits/stdc++.h>
+using namespace std;
+
+int input[200005], before[200005], record[200005];
+int n;
+
+long long tree[200005];
+inline int lowbit(int x)
 {
-    static char c;
-    r = 0;
-    for (c = getchar(); c > '9' || c < '0'; c = getchar());
-    for (; c >= '0' && c <= '9'; r = (r << 1) + (r << 3) + (c ^ 48), c = getchar());
+    return x & (-x);
 }
-const int N = 30005;
-const int M = 60005;
-#define lc(x) (x << 1)
-#define rc(x) (x << 1 | 1)
-
-void add(int, int, int);
-void dfs1(int);
-void dfs2(int);
-void build(int, int, int);
-void update(int, int, int);
-ll query(int, int);
-
-int hed[N], nxt[M], to[M], val[M], id;
-int dep[N], fa[N], siz[N], son[N], top[N], ttl[N], ltt[N], tot;
-int vf[N];
-int xs[N];
-int sum[N << 2][10];
-bool tag[N << 2][10];
-int n, q;
+void add(int x, long long val)
+{
+    for (; x <= n; x += lowbit(x))
+        tree[x] += val;
+    return;
+}
+long long sum(int x)
+{
+    long long res = 0;
+    for (; x > 0; x -= lowbit(x))
+        res += tree[x];
+    return res;
+}
 
 int main()
 {
-    read(n), read(q);
-    for (int i = 1; i < n; ++i)
+    int m;
+    scanf("%d%d", &n, &m);
+    long long tot = 0; //先记录初始状态下的逆序对数量
+    for (int i = 1; i <= n; i++)
     {
-        int u, v, w;
-        read(u), read(v), read(w);
-        add(u, v, w), add(v, u, w);
+        scanf("%d", input + i);
+        before[i] = i - 1 - sum(input[i]); //记录比它小的数字数量
+        tot += before[i];              //最开始tot记录初始的答案
+        record[before[i]]++;           //桶，record[i]=前面有i个数字比它大的数字的数量
+        add(input[i], 1);              //树状数组作桶
     }
-    dfs1(1);
-    top[1] = 1;
-    dfs2(1);
-    build(1, 1, n);
-    for (int i = 1; i <= q; ++i)
+    memset(tree, 0, sizeof(tree)); //清空
+    add(1, tot);                   //实现差分，先把序列总逆序对数量放在最前面
+    tot = 0;
+    for (int i = 0; i < n; ++i)
     {
-        int type;
-        read(type);
-        int u, v;
-        read(u), read(v);
-        switch (type)
-        {
-        case 1:
-            write(query(u, v)), EL;
-            break;
-        case 2:
-            int w;
-            read(w);
-            update(u, v, w);
-            break;
-        }
+        tot += record[i]; //每次tot记录的是前面有小于等于i个数字比它大的数字的数量
+        //则n-tot即为前面有大于i个数字比它大的数字的数量
+        add(i + 2, -(n - tot)); //实现差分，在这一个位置会有n-tot个数字逆序对数减1
+                                //由于下标问题，i必须+2，这样当i=0时就会储存在第2位，而第1位是放总逆序对数的
     }
-    return 0;
-}
-
-inline void add(int u, int v, int w)
-{
-    nxt[++id] = hed[u];
-    hed[u] = id;
-    to[id] = v;
-    val[id] = w;
-}
-void dfs1(int u)
-{
-    siz[u] = 1;
-    for (int i = hed[u]; i; i = nxt[i])
+    for (int i = 0, opt, x; i < m; i++)
     {
-        int v = to[i];
-        if (v != fa[u])
+        scanf("%d%d", &opt, &x);
+        x = min(x, n - 1); //对opt=2的情况进行优化
+        if (opt == 1)
         {
-            dep[v] = dep[u] + 1;
-            fa[v] = u;
-            xs[v] = xs[u] ^ val[i];
-            vf[v] = val[i];
-            dfs1(v);
-            siz[u] += siz[v];
-            if (siz[v] > siz[son[u]])
+            if (input[x] < input[x + 1])
             {
-                son[u] = v;
+                swap(input[x], input[x + 1]);
+                swap(before[x], before[x + 1]);
+                add(1, 1);                  //逆序对总数量增加1
+                add(before[x + 1] + 2, -1); //由于before[x+1]增加了，所以在原before[x+1]轮时也可以使逆序对-1，所以记录-1
+                before[x + 1]++;            //input[x]交换到x+1位上后，前面比它大的数量增加了1
+            }
+            else
+            {
+                swap(input[x], input[x + 1]);
+                swap(before[x], before[x + 1]);
+                add(1, -1);            //逆序对总数量减少1
+                before[x]--;           //input[x+1]交换到x位上后，前面的比它大的数量减少了1
+                add(before[x] + 2, 1); //由于before[x]减少了，所以在原before[x]轮时无法使逆序对减少，所以记录1
             }
         }
+        else
+            printf("%lld\n", sum(x + 1)); //直接输出答案
     }
-}
-void dfs2(int u)
-{
-    ltt[ttl[u] = ++tot] = u;
-    if (son[u])
-    {
-        top[son[u]] = top[u];
-        dfs2(son[u]);
-    }
-    for (int i = hed[u]; i; i = nxt[i])
-    {
-        int v = to[i];
-        if (v != fa[u] && v != son[u])
-        {
-            top[v] = v;
-            dfs2(v);
-        }
-    }
-}
-inline void pushdown(int x, int xl, int xr, int bit)
-{
-    if (tag[x][bit])
-    {
-        int xm = (xl + xr) >> 1;
-        sum[lc(x)][bit] = (xm - xl + 1) - sum[lc(x)][bit];
-        sum[rc(x)][bit] = (xr - xm) - sum[rc(x)][bit];
-        tag[lc(x)][bit] ^= 1;
-        tag[rc(x)][bit] ^= 1;
-        tag[x][bit] = false;
-    }
-}
-inline void pushup(int x, int bit)
-{
-    sum[x][bit] = sum[lc(x)][bit] + sum[rc(x)][bit];
-}
-void update(int x, int xl, int xr, int bit, int ul, int ur)
-{
-    if (xl >= ul && xr <= ur)
-    {
-        sum[x][bit] = (xr - xl + 1) - sum[x][bit];
-        tag[x][bit] ^= 1;
-        return;
-    }
-    pushdown(x, xl, xr, bit);
-    int xm = (xl + xr) >> 1;
-    if (xm >= ul)
-    {
-        update(lc(x), xl, xm, bit, ul, ur);
-    }
-    if (xm < ur)
-    {
-        update(rc(x), xm + 1, xr, bit, ul, ur);
-    }
-    pushup(x, bit);
-}
-int query(int x, int xl, int xr, int bit, int ql, int qr)
-{
-    if (xl >= ql && xr <= qr)
-    {
-        return sum[x][bit];
-    }
-    pushdown(x, xl, xr, bit);
-    int xm = (xl + xr) >> 1;
-    int ans = 0;
-    if (xm >= ql)
-    {
-        ans += query(lc(x), xl, xm, bit, ql, qr);
-    }
-    if (xm < qr)
-    {
-        ans += query(rc(x), xm + 1, xr, bit, ql, qr);
-    }
-    return ans;
-}
-void build(int x, int xl, int xr)
-{
-    if (xl == xr)
-    {
-        for (int i = 0; i < 10; ++i)
-        {
-            sum[x][i] = (xs[ltt[xl]] >> i) & 1;
-        }
-        return;
-    }
-    int xm = (xl + xr) >> 1;
-    build(lc(x), xl, xm);
-    build(rc(x), xm + 1, xr);
-    for (int i = 0; i < 10; ++i)
-    {
-        pushup(x, i);
-    }
-}
-void update(int u, int v, int w)
-{
-    int x = dep[u] < dep[v] ? v : u;
-    for (int i = 0; i < 10; ++i)
-    {
-        if (((vf[x] ^ w) >> i) & 1)
-        {
-            update(1, 1, n, i, ttl[x], ttl[x] + siz[x] - 1);
-        }
-    }
-    vf[x] = w;
-}
-ll query(int u, int v)
-{
-    int cnt[10];
-    int siz = 0;
-    for (int i = 0; i < 10; ++i)
-    {
-        cnt[i] = 0;
-    }
-    while (top[u] ^ top[v])
-    {
-        if (dep[top[u]] < dep[top[v]])
-        {
-            u ^= v ^= u ^= v;
-        }
-        siz += ttl[u] - ttl[top[u]] + 1;
-        for (int i = 0; i < 10; ++i)
-        {
-            cnt[i] += query(1, 1, n, i, ttl[top[u]], ttl[u]);
-        }
-        u = fa[top[u]];
-    }
-    if (dep[u] < dep[v])
-    {
-        u ^= v ^= u ^= v;
-    }
-    siz += ttl[u] - ttl[v] + 1;
-    for (int i = 0; i < 10; ++i)
-    {
-        cnt[i] += query(1, 1, n, i, ttl[v], ttl[u]);
-    }
-    ll ans = 0;
-    for (int i = 0; i < 10; ++i)
-    {
-        ans += cnt[i] * (siz - cnt[i]) * 1ll * (1 << i);
-    }
-    return ans;
+    return 0;
 }

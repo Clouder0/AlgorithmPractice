@@ -31,15 +31,15 @@ int main()
         int gc = gcd(p1, p2);
         if(k == 1)
         {
-            puts("NO");
+            puts("REBEL");
             goto end;
         }
         p1 /= gc;
         p2 /= gc;
         if (p1 * (k - 1) + 1 < p2)
-            puts("NO");
+            puts("REBEL");
         else
-            puts("YES");
+            puts("OBEY");
         end:;
     }
     return 0;

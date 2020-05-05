@@ -1,76 +1,174 @@
 #include <bits/stdc++.h>
 using namespace std;
-
-int input[200005], before[200005], record[200005];
-int n;
-
-long long tree[200005];
-inline int lowbit(int x)
+inline int read()
 {
-    return x & (-x);
-}
-void add(int x, long long val)
-{
-    for (; x <= n; x += lowbit(x))
-        tree[x] += val;
-    return;
-}
-long long sum(int x)
-{
-    long long res = 0;
-    for (; x > 0; x -= lowbit(x))
-        res += tree[x];
-    return res;
-}
-
-int main()
-{
-    int m;
-    scanf("%d%d", &n, &m);
-    long long tot = 0; //先记录初始状态下的逆序对数量
-    for (int i = 1; i <= n; i++)
+    register int x = 0;
+    register bool f = 0;
+    register char c = getchar();
+    while (c < '0' || c > '9')
     {
-        scanf("%d", input + i);
-        before[i] = i - 1 - sum(input[i]); //记录比它小的数字数量
-        tot += before[i];              //最开始tot记录初始的答案
-        record[before[i]]++;           //桶，record[i]=前面有i个数字比它大的数字的数量
-        add(input[i], 1);              //树状数组作桶
+        if (c == '-')
+            f = 1;
+        c = getchar();
     }
-    memset(tree, 0, sizeof(tree)); //清空
-    add(1, tot);                   //实现差分，先把序列总逆序对数量放在最前面
-    tot = 0;
-    for (int i = 0; i < n; ++i)
+    while (c >= '0' && c <= '9')
     {
-        tot += record[i]; //每次tot记录的是前面有小于等于i个数字比它大的数字的数量
-        //则n-tot即为前面有大于i个数字比它大的数字的数量
-        add(i + 2, -(n - tot)); //实现差分，在这一个位置会有n-tot个数字逆序对数减1
-                                //由于下标问题，i必须+2，这样当i=0时就会储存在第2位，而第1位是放总逆序对数的
+        x = (x << 3) + (x << 1) + c - 48;
+        c = getchar();
     }
-    for (int i = 0, opt, x; i < m; i++)
+    return f ? -x : x;
+}
+char cr[200];
+int tt;
+inline void print(int x, char k = '\n')
+{
+    if (!x)
+        putchar('0');
+    if (x < 0)
+        putchar('-'), x = -x;
+    while (x)
+        cr[++tt] = x % 10 + '0', x /= 10;
+    while (tt)
+        putchar(cr[tt--]);
+    putchar(k);
+}
+const int maxn = 100010;
+const int ratio = 4;
+struct lef
+{
+    int v, w, ls, rs;
+} t[maxn * 80];
+int rt, tot, ans, lastans;
+void nnd(int &o, int v, int w, int ls, int rs)
+{
+    o = ++tot;
+    t[o] = (lef){v, w, ls, rs};
+}
+void merge(int &o, int x, int y)
+{
+    nnd(o, t[y].v, t[x].w + t[y].w, x, y);
+}
+void pushup(int o)
+{
+    if (!t[o].ls)
     {
-        scanf("%d%d", &opt, &x);
-        x = min(x, n - 1); //对opt=2的情况进行优化
-        if (opt == 1)
+        t[o].w = 1;
+        return;
+    }
+    t[o].w = t[t[o].ls].w + t[t[o].rs].w;
+    t[o].v = t[t[o].rs].v;
+}
+void maintain(int o)
+{
+    if (t[t[o].ls].w > t[t[o].rs].w * ratio)
+    {
+        merge(t[o].rs, t[t[o].ls].rs, t[o].rs);
+        t[o].ls = t[t[o].ls].ls;
+    }
+    if (t[t[o].rs].w > t[t[o].ls].w * ratio)
+    {
+        merge(t[o].ls, t[o].ls, t[t[o].rs].ls);
+        t[o].rs = t[t[o].rs].rs;
+    }
+}
+int qrk(int o, int k)
+{
+    if (t[o].w == 1)
+        return 1;
+    if (k <= t[t[o].ls].v)
+        return qrk(t[o].ls, k);
+    else
+        return t[t[o].ls].w + qrk(t[o].rs, k);
+}
+int qnm(int o, int k)
+{
+    if (t[o].w == 1)
+        return t[o].v;
+    if (k <= t[t[o].ls].w)
+        return qnm(t[o].ls, k);
+    else
+        return qnm(t[o].rs, k - t[t[o].ls].w);
+}
+void ins(int o, int x)
+{
+    if (t[o].w == 1)
+    {
+        nnd(t[o].ls, min(t[o].v, x), 1, 0, 0);
+        nnd(t[o].rs, max(t[o].v, x), 1, 0, 0);
+    }
+    else
+    {
+        ins(x > t[t[o].ls].v ? t[o].rs : t[o].ls, x);
+    }
+    pushup(o);
+    maintain(o);
+}
+void del(int o, int x)
+{
+    int wh, el;
+    if (x <= t[t[o].ls].v)
+        wh = t[o].ls, el = t[o].rs;
+    else
+        wh = t[o].rs, el = t[o].ls;
+    if (t[wh].w == 1)
+        if (x == t[wh].v)
         {
-            if (input[x] < input[x + 1])
-            {
-                swap(input[x], input[x + 1]);
-                swap(before[x], before[x + 1]);
-                add(1, 1);                  //逆序对总数量增加1
-                add(before[x + 1] + 2, -1); //由于before[x+1]增加了，所以在原before[x+1]轮时也可以使逆序对-1，所以记录-1
-                before[x + 1]++;            //input[x]交换到x+1位上后，前面比它大的数量增加了1
-            }
-            else
-            {
-                swap(input[x], input[x + 1]);
-                swap(before[x], before[x + 1]);
-                add(1, -1);            //逆序对总数量减少1
-                before[x]--;           //input[x+1]交换到x位上后，前面的比它大的数量减少了1
-                add(before[x] + 2, 1); //由于before[x]减少了，所以在原before[x]轮时无法使逆序对减少，所以记录1
-            }
+            t[o].ls = t[el].ls;
+            t[o].rs = t[el].rs;
+            t[o].v = t[el].v;
         }
         else
-            printf("%lld\n", sum(x + 1)); //直接输出答案
+            return;
+    else
+        del(wh, x);
+    pushup(o);
+    maintain(o);
+}
+int pre(int rk, int x)
+{
+    return qnm(rt, qrk(rt, x) - 1);
+}
+int suf(int rk, int x)
+{
+    return qnm(rt, qrk(rt, x + 1));
+}
+signed main()
+{
+    int n = read(), m = read();
+    nnd(rt, 2147483647, 1, 0, 0);
+    for (int i = 1; i <= n; i++)
+    {
+        int a = read();
+        ins(rt, a);
     }
+    while (m--)
+    {
+        int opt = read(), x = read() ^ lastans;
+        switch (opt)
+        {
+        case 1:
+            ins(rt, x);
+            break;
+        case 2:
+            del(rt, x);
+            break;
+        case 3:
+            lastans = qrk(rt, x);
+            break;
+        case 4:
+            lastans = qnm(rt, x);
+            break;
+        case 5:
+            lastans = pre(rt, x);
+            break;
+        case 6:
+            lastans = suf(rt, x);
+            break;
+        }
+        printf("last %d %d %d\n",m,lastans,x);
+        if (opt != 1 && opt != 2)
+            ans ^= lastans;
+    }
+    print(ans);
     return 0;
 }

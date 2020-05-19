@@ -1,123 +1,124 @@
 #include <bits/stdc++.h>
+
+#define NS (100005)
+#define LGS (17)
+
 using namespace std;
-#define il inline
-#define re register
-#define debug printf("Now is Line : %d\n", __LINE__)
-#define file(a)                    \
-	freopen(#a ".in", "r", stdin); \
-	freopen(#a ".out", "w", stdout)
-#define int long long
-#define inf 123456789000000000
-#define mod 1000000007
-il int read()
+
+template <typename _Tp>
+inline void IN(_Tp &dig)
 {
-	re int x = 0, f = 1;
-	re char c = getchar();
-	while (c < '0' || c > '9')
-	{
+	char c;
+	bool flag = 0;
+	dig = 0;
+	while (c = getchar(), !isdigit(c))
 		if (c == '-')
-			f = -1;
-		c = getchar();
-	}
-	while (c >= '0' && c <= '9')
-		x = x * 10 + c - 48, c = getchar();
-	return x * f;
+			flag = 1;
+	while (isdigit(c))
+		dig = dig * 10 + c - '0', c = getchar();
+	if (flag)
+		dig = -dig;
 }
-#define maxn 250005
-struct edge
+
+struct graph
 {
-	int v, w, next;
-} e[maxn << 1];
-int n, m, head[maxn], cnt, is[maxn], mi[maxn], dfn[maxn], col, t;
-int size[maxn], fa[maxn], top[maxn], son[maxn], dep[maxn], s[maxn];
-vector<int> v[maxn];
-il void add(int u, int v, int w)
+	int head[NS], nxt[NS << 1], to[NS << 1], sz;
+	void init() { memset(head, -1, sizeof(head)), sz = 0; }
+	graph() { init(); }
+	void push(int a, int b) { printf("add: %d %d\n",a,b);nxt[sz] = head[a], to[sz] = b, head[a] = sz++; }
+	int operator[](const int a) { return to[a]; }
+} g;
+
+int n, id[NS], dfn, q, k, h[NS], c[NS];
+
+int pre[NS][LGS + 1], dep[NS];
+
+int sta[NS], top;
+
+bool book[NS];
+
+void Init(int a, int fa)
 {
-	e[++cnt] = (edge){v, w, head[u]};
-	head[u] = cnt;
+	pre[a][0] = fa, dep[a] = dep[fa] + 1, id[a] = ++dfn;
+	for (int i = 1; i <= LGS; i += 1)
+		pre[a][i] = pre[pre[a][i - 1]][i - 1];
+	for (int i = g.head[a]; ~i; i = g.nxt[i])
+		if (g[i] != fa)
+			Init(g[i], a);
 }
-il bool cmp(int a, int b) { return dfn[a] < dfn[b]; }
-il void dfs1(int u, int fr)
+
+int lca(int a, int b)
 {
-	size[u] = 1, fa[u] = fr, dep[u] = dep[fr] + 1;
-	for (re int i = head[u]; i; i = e[i].next)
+	if (dep[a] > dep[b])
+		swap(a, b);
+	for (int i = LGS; i >= 0; i -= 1)
+		if (dep[pre[b][i]] >= dep[a])
+			b = pre[b][i];
+	if (a == b)
+		return a;
+	for (int i = LGS; i >= 0; i -= 1)
+		if (pre[a][i] != pre[b][i])
+			a = pre[a][i], b = pre[b][i];
+	return pre[a][0];
+}
+
+bool cmp(int a, int b) { return id[a] < id[b]; }
+
+int Dp(int a)
+{
+	printf("now: %d\n",a);
+	int tot = 0, ans = 0;
+	for (int i = g.head[a]; ~i; i = g.nxt[i])
+		ans += Dp(g[i]), tot += c[g[i]];
+	if (book[a])
+		c[a] = 1, ans += tot;
+	else if (tot > 1)
+		c[a] = 0, ans++;
+	else
+		c[a] = tot;
+	return ans;
+}
+
+int main(int argc, char const *argv[])
+{
+	IN(n);
+	for (int i = 1, a, b; i < n; i += 1)
+		IN(a), IN(b), g.push(a, b), g.push(b, a);
+	Init(1, 0), IN(q);
+	while (q--)
 	{
-		int v = e[i].v;
-		if (v == fr)
-			continue;
-		mi[v] = min(mi[u], e[i].w);
-		dfs1(v, u), size[u] += size[v];
-		if (size[son[u]] < size[v])
-			son[u] = v;
-	}
-}
-il void dfs2(int u, int fr)
-{
-	top[u] = fr, dfn[u] = ++col;
-	if (!son[u])
-		return;
-	dfs2(son[u], fr);
-	for (re int i = head[u]; i; i = e[i].next)
-	{
-		int v = e[i].v;
-		if (v != fa[u] && v != son[u])
-			dfs2(v, v);
-	}
-}
-il int lca(int a, int b)
-{
-	while (top[a] != top[b])
-		dep[top[a]] > dep[top[b]] ? a = fa[top[a]] : b = fa[top[b]];
-	return dep[a] < dep[b] ? a : b;
-}
-il void push(int x)
-{
-	if (t == 1)
-	{
-		s[++t] = x;
-		return;
-	}
-	int l = lca(x, s[t]);
-	if (l == s[t])
-		return;
-	while (t > 1 && dfn[s[t - 1]] >= dfn[l])
-		v[s[t - 1]].push_back(s[t]), --t;
-	if (s[t] != l)
-		v[l].push_back(s[t]), s[t] = l;
-	s[++t] = x;
-}
-il int dp(int u)
-{
-	if (v[u].size() == 0)
-		return mi[u];
-	int temp = 0;
-	for (re int i = 0; i < v[u].size(); ++i)
-		temp += dp(v[u][i]);
-	v[u].clear();
-	return min(mi[u], temp);
-}
-signed main()
-{
-	n = read();
-	for (re int i = 1; i < n; ++i)
-	{
-		int u = read(), v = read(), w = read();
-		add(u, v, w), add(v, u, w);
-	}
-	mi[1] = inf, dfs1(1, 0), dfs2(1, 1);
-	int T = read();
-	while (T--)
-	{
-		m = read();
-		for (re int i = 1; i <= m; ++i)
-			is[i] = read();
-		sort(is + 1, is + m + 1, cmp);
-		s[t = 1] = 1;
-		for (re int i = 1; i <= m; ++i)
-			push(is[i]);
-		while (t > 0)
-			v[s[t - 1]].push_back(s[t]), --t;
-		printf("%lld\n", dp(1));
+		IN(k);
+		for (int i = 1; i <= k; i += 1)
+			IN(h[i]), book[h[i]] = 1;
+		for (int i = 1; i <= k; i += 1)
+			if (book[pre[h[i]][0]])
+			{
+				puts("-1");
+				goto end;
+			}
+		sort(h + 1, h + 1 + k, cmp);
+		sta[top = 1] = 1, g.sz = 0, g.head[1] = -1;
+		for (int i = 1, l; i <= k; i += 1)
+			if (h[i] != 1)
+			{
+				l = lca(h[i], sta[top]);
+				if (l != sta[top])
+				{
+					while (id[l] < id[sta[top - 1]])
+						g.push(sta[top - 1], sta[top]), top--;
+					if (id[l] > id[sta[top - 1]])
+						g.head[l] = -1, g.push(l, sta[top]), sta[top] = l;
+					else
+						g.push(l, sta[top--]);
+				}
+				g.head[h[i]] = -1, sta[++top] = h[i];
+			}
+		for (int i = 1; i < top; i += 1)
+			g.push(sta[i], sta[i + 1]);
+		printf("%d\n", Dp(1));
+	end:
+		for (int i = 1; i <= k; i += 1)
+			book[h[i]] = 0;
 	}
 	return 0;
 }

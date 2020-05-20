@@ -1,9 +1,13 @@
 #include <bits/stdc++.h>
 
-#define NS (100005)
-#define LGS (17)
+#define NS (1000005)
+#define LGS (20)
+
+#define INF (100000000)
 
 using namespace std;
+
+typedef long long LL;
 
 template <typename _Tp>
 inline void IN(_Tp &dig)
@@ -25,17 +29,19 @@ struct graph
 	int head[NS], nxt[NS << 1], to[NS << 1], sz;
 	void init() { memset(head, -1, sizeof(head)), sz = 0; }
 	graph() { init(); }
-	void push(int a, int b) { printf("add: %d %d\n",a,b);nxt[sz] = head[a], to[sz] = b, head[a] = sz++; }
+	void push(int a, int b) { nxt[sz] = head[a], to[sz] = b, head[a] = sz++; }
 	int operator[](const int a) { return to[a]; }
 } g;
 
-int n, id[NS], dfn, q, k, h[NS], c[NS];
+int n, id[NS], dfn, q, k, h[NS], sz[NS], mn[NS], mx[NS], mnans, mxans;
 
 int pre[NS][LGS + 1], dep[NS];
 
 int sta[NS], top;
 
 bool book[NS];
+
+LL f[NS], tot;
 
 void Init(int a, int fa)
 {
@@ -64,19 +70,24 @@ int lca(int a, int b)
 
 bool cmp(int a, int b) { return id[a] < id[b]; }
 
-int Dp(int a)
+void Dp(int a)
 {
-	printf("now: %d\n",a);
-	int tot = 0, ans = 0;
-	for (int i = g.head[a]; ~i; i = g.nxt[i])
-		ans += Dp(g[i]), tot += c[g[i]];
+	printf("now %d\n",a);
+	sz[a] = book[a], f[a] = 0;
 	if (book[a])
-		c[a] = 1, ans += tot;
-	else if (tot > 1)
-		c[a] = 0, ans++;
+		mn[a] = mx[a] = 0;
 	else
-		c[a] = tot;
-	return ans;
+		mn[a] = INF, mx[a] = -INF;
+	for (int i = g.head[a], l; ~i; i = g.nxt[i])
+	{
+		Dp(g[i]), l = dep[g[i]] - dep[a];
+		tot += (f[a] + sz[a] * l) * sz[g[i]] + f[g[i]] * sz[a];
+		sz[a] += sz[g[i]], f[a] += f[g[i]] + l * sz[g[i]];
+		mnans = min(mnans, mn[a] + mn[g[i]] + l);
+		mxans = max(mxans, mx[a] + mx[g[i]] + l);
+		mn[a] = min(mn[a], mn[g[i]] + l);
+		mx[a] = max(mx[a], mx[g[i]] + l);
+	}
 }
 
 int main(int argc, char const *argv[])
@@ -90,12 +101,6 @@ int main(int argc, char const *argv[])
 		IN(k);
 		for (int i = 1; i <= k; i += 1)
 			IN(h[i]), book[h[i]] = 1;
-		for (int i = 1; i <= k; i += 1)
-			if (book[pre[h[i]][0]])
-			{
-				puts("-1");
-				goto end;
-			}
 		sort(h + 1, h + 1 + k, cmp);
 		sta[top = 1] = 1, g.sz = 0, g.head[1] = -1;
 		for (int i = 1, l; i <= k; i += 1)
@@ -115,8 +120,8 @@ int main(int argc, char const *argv[])
 			}
 		for (int i = 1; i < top; i += 1)
 			g.push(sta[i], sta[i + 1]);
-		printf("%d\n", Dp(1));
-	end:
+		mnans = INF, mxans = -INF, tot = 0, Dp(1);
+		printf("%lld %d %d\n", tot, mnans, mxans);
 		for (int i = 1; i <= k; i += 1)
 			book[h[i]] = 0;
 	}

@@ -20,7 +20,7 @@ inline void add(const int &x,const int &y,const int &val)
     E[++tot].next = head[x],E[tot].to = y,E[tot].val = val,head[x] = tot;
 }
 int n,m;
-int fa[maxn],dep[maxn],size[maxn],son[maxn],dis[maxn];
+int fa[maxn],dep[maxn],size[maxn],son[maxn],dis[maxn],top[maxn];
 void dfs1(int u)
 {
     size[u] = 1;
@@ -29,12 +29,11 @@ void dfs1(int u)
         int v = E[p].to;
         if(v == fa[u]) continue;
         fa[v] = u,dep[v] = dep[u] + 1,dis[v] = dis[u] + E[p].val;
-        dfs1(v);
+        dfs1(v); 
         size[u] += size[v];
         if(size[son[u]] < size[v]) son[u] = v;
     }
 }
-int top[maxn];
 void dfs2(int u)
 {
     if(!son[u]) return;
@@ -50,14 +49,7 @@ void dfs2(int u)
 }
 inline int lca(int x,int y)
 {
-    while(top[x] != top[y])
-    {
-        if(dep[top[x]] < dep[top[y]])
-        {
-            std::swap(x,y);
-        }
-        x = fa[top[x]];
-    }
+    while(top[x] != top[y]) dep[top[x]] > dep[top[y]] ? x = fa[top[x]] : y = fa[top[y]];
     return dep[x] < dep[y] ? x : y;
 }
 int W[maxn];

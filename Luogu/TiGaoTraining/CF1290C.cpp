@@ -36,7 +36,7 @@ int main()
         for(int j = 1;j<=num;++j)
         {
             read(x);
-            belong[x][belong[x][0]] = i;
+            belong[x][belong[x][0] > 0] = i;
         }
     }
     for(int i = 1;i<=k*2 + 1;++i)
@@ -52,17 +52,20 @@ int main()
                 merge(belong[i][0],belong[i][1] + k),merge(belong[i][1],belong[i][0] + k);
                 ans += get(belong[i][0]);
             }
-            else if(s[i] == '1' && find(belong[i][0]) != find(belong[i][1] + k))
+            else if(s[i] == '1' && find(belong[i][0]) != find(belong[i][1]))
             {
                 ans -= get(belong[i][0]) + get(belong[i][1]);
-                merge(belong[i][0],belong[i][1]),merge(belong[i][1] + k,belong[i][0] + k);
+                merge(belong[i][0],belong[i][1]),merge(belong[i][0] + k,belong[i][1] + k);
                 ans += get(belong[i][0]);
             }
         }
-        else
+        else if(belong[i][0])
         {
-            
+            ans -= get(belong[i][0]);
+            merge(belong[i][0] + k * (s[i] - 48),k*2+1);
+            ans += get(belong[i][0]);
         }
+        printf("%d\n",ans);
     }
     return 0;
 }

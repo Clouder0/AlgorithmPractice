@@ -1,80 +1,71 @@
 #include <cstdio>
 #include <algorithm>
-using namespace std;
-template<typename T>
+template <typename T>
 void read(T &r)
 {
-    static char c;r=0;
-    for(c=getchar();c>'9'||c<'0';c=getchar());
-    for(;c>='0'&&c<='9';r=(r<<1)+(r<<3)+(c^48),c=getchar());
+    static char c; r = 0;
+    for (c = getchar(); c > '9' || c < '0'; c = getchar());
+    for (; c >= '0' && c <= '9'; r = (r << 1) + (r << 3) + (c ^ 48), c = getchar());
 }
-const int maxn = 1e5 + 10;
-struct line
+const int maxn = 2e5 + 100;
+struct Line
 {
-    int l,r,h,mark;
-    line(const int &_l = 0,const int &_r = 0,const int &_h = 0,const int &_mark = 0) : l(_l),r(_r),h(_h),mark(_mark) {}
-    bool operator<(const line &b) const
-    {
-        return this->h < b.h;
-    }
-}lines[maxn<<2];
+    int l, r, h, mark;
+    bool operator<(const Line &b) { return this->h < b.h; }
+} E[maxn << 1];
+struct node
+{
+    int l, r, mark;
+    long long len;
+} a[maxn << 3];
 int n;
-int X[maxn<<2];
-int tag[maxn<<4];
-long long len[maxn<<4];
-inline void push_up(const int &l,const int &r,const int &x)
+int X[maxn << 1];
+inline void pushup(const int &p)
 {
-    if(tag[x])
-        len[x] = X[r+1] - X[l];
-    else if(l == r)
-        len[x] = 0;
-    else
-        len[x] = len[x<<1] + len[x<<1|1];
+    if (a[p].mark) a[p].len = X[a[p].r + 1] - X[a[p].l];
+    else a[p].len = a[p << 1].len + a[p << 1 | 1].len;
 }
-int ll,rr,k;
-inline void modify(int l,int r,int p)
+void build(const int &l, const int &r, const int &p)
 {
-    if(l >= ll && r <= rr)
+    a[p].l = l, a[p].r = r;
+    if (l == r) return;
+    int mid = l + r >> 1;
+    build(l, mid, p << 1), build(mid + 1, r, p << 1 | 1);
+}
+void modify(const int &p, const int &ll, const int &rr, const int &k)
+{
+    node &now = a[p], &ls = a[p << 1], &rs = a[p << 1 | 1];
+    if (X[now.l] >= ll && X[now.r + 1] <= rr)
     {
-        tag[p] += k;
-        push_up(l,r,p);
+        now.mark += k;
+        pushup(p);
         return;
     }
-    int mid = (l+r)>>1;
-    if(ll <= mid)
-        modify(l,mid,p<<1);
-    if(rr > mid)
-        modify(mid+1,r,p<<1|1);
-    push_up(l,r,p);
+    if (ll <= X[ls.r]) modify(p << 1, ll, rr, k);
+    if (rr >= X[rs.l + 1]) modify(p << 1 | 1, ll, rr, k);
+    pushup(p);
 }
 int main()
 {
     read(n);
-    int leftx,downy,rightx,upy;
-    for(int i = 1;i<=n;++i)
+    for (int i = 1; i <= n; ++i)
     {
-        read(leftx);
-        read(downy);
-        read(rightx);
-        read(upy);
-        X[(i<<1)-1] = leftx;
-        X[i<<1] = rightx;
-        lines[(i<<1) - 1] = line(leftx,rightx,downy,1);
-        lines[i<<1] = line(leftx,rightx,upy,-1);
+        int x1, y1, x2, y2;
+        read(x1), read(y1), read(x2), read(y2);
+        E[(i << 1) - 1] = (Line){x1, x2, y1, 1};
+        E[i << 1] = (Line){x1, x2, y2, -1};
+        X[(i << 1) - 1] = x1, X[i << 1] = x2;
     }
-    n <<= 1;
-    sort(lines+1,lines+1+n);
-    sort(X+1,X+1+n);
-    int num = unique(X+1,X+1+n) - X - 1;
-    long long ans(0);
-    for(int i = 1;i<=n;++i)
+    std::sort(E + 1, E + 1 + n * 2);
+    std::sort(X + 1, X + 1 + n * 2);
+    int num = std::unique(X + 1, X + 1 + n * 2) - X - 1;
+    build(1, num - 1, 1);
+    long long ans = 0;
+    for (int i = 1; i < n * 2; ++i)
     {
-        ans += len[1] * (lines[i].h - lines[i-1].h);
-        ll = lower_bound(X+1,X+num,lines[i].l) - X;
-        rr = lower_bound(X+1,X+num,lines[i].r) - X - 1;
-        k = lines[i].mark;
-        modify(1,num - 1,1);
+        modify(1, E[i].l, E[i].r, E[i].mark);
+        ans += (E[i + 1].h - E[i].h) * a[1].len;
     }
-    printf("%lld\n",ans);
+    printf("%lld\n", ans);
     return 0;
 }

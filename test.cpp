@@ -1,204 +1,86 @@
-#include <bits/stdc++.h>
-#define y1 y1_
-#define index index_
-#define pipe pipe_
-#define next next_
-#define endl '\n'
-#define rgi register int
-#define ll long long
-#define Pi acos(-1.0)
-#define lowbit(x) ((x & (-x)))
-#define pb push_back
-#define mk make_pair
-#define pii pair<int, int>
-#define fst first
-#define scd second
+#include <cstdio>
+#include <cstring>
+#include <algorithm>
+#define RG register
+#define R RG int
 using namespace std;
-inline int read()
+const int N = 1e5 + 9, SZ = 2.2e6;
+char buf[SZ], *pp = buf - 1; //fread必备
+int k, a[N], b[N], c[N], p[N], q[N], v[N], cnt[N], ans[N], *e;
+inline int in()
 {
-	int f = 1, x = 0;
-	char ch = getchar();
-	while (!isdigit(ch))
-	{
-		if (ch == '-')
-			f = -1;
-		ch = getchar();
-	}
-	while (isdigit(ch))
-	{
-		x = x * 10 + ch - '0';
-		ch = getchar();
-	}
-	return x * f;
+	while (*++pp < '-')
+		;
+	R x = *pp & 15;
+	while (*++pp > '-')
+		x = x * 10 + (*pp & 15);
+	return x;
 }
-const int MAXN = 1e5 + 5;
-struct EDGE
+void out(R x)
 {
-	int next, to;
-} edge[MAXN << 1];
-int head[MAXN], tot;
-inline void add(int u, int v)
-{
-	edge[++tot].next = head[u];
-	edge[tot].to = v;
-	head[u] = tot;
+	if (x > 9)
+		out(x / 10);
+	*++pp = x % 10 | '0';
 }
-int n, c[MAXN];
-bool done[MAXN];
-/*找重心*/
-int f[MAXN], sz[MAXN], Size, root;
-void getroot(int u, int fa)
-{
-	sz[u] = 1;
-	f[u] = 0;
-	for (rgi i = head[u]; i; i = edge[i].next)
-	{
-		int v = edge[i].to;
-		if (v == fa || done[v])
-			continue;
-		getroot(v, u);
-		sz[u] += sz[v];
-		f[u] = max(f[u], sz[v]);
-	}
-	f[u] = max(f[u], Size - sz[u]);
-	root = f[u] < f[root] ? u : root;
+inline bool cmp(R x, R y)
+{ //直接对数组排序，注意三关键字
+	return a[x] < a[y] || (a[x] == a[y] && (b[x] < b[y] || (b[x] == b[y] && c[x] < c[y])));
 }
-/*计算贡献*/
-ll ans[MAXN], cnt[MAXN], col[MAXN], sum, num, S;
-void dfs1(int u, int fa)
-{
-	sz[u] = 1;
-	cnt[c[u]]++; /*根不一样了,sz必须要重搞*/
-	for (rgi i = head[u]; i; i = edge[i].next)
-	{
-		int v = edge[i].to;
-		if (v == fa || done[v])
-			continue;
-		dfs1(v, u);
-		sz[u] += sz[v];
-	}
-	if (cnt[c[u]] == 1)
-	{
-		sum += sz[u];
-		col[c[u]] += sz[u]; /*记录下每种颜色的贡献*/
-	}
-	cnt[c[u]]--;
+inline void upd(R i, R v)
+{ //树状数组修改
+	for (; i <= k; i += i & -i)
+		e[i] += v;
 }
-void change(int u, int fa, int k)
-{
-	cnt[c[u]]++;
-	for (rgi i = head[u]; i; i = edge[i].next)
-	{
-		int v = edge[i].to;
-		if (v == fa || done[v])
-			continue;
-		change(v, u, k);
-	}
-	if (cnt[c[u]] == 1)
-	{
-		sum += sz[u] * k;
-		col[c[u]] += sz[u] * k;
-	}
-	cnt[c[u]]--;
+inline int ask(R i)
+{ //树状数组查前缀和
+	R v = 0;
+	for (; i; i -= i & -i)
+		v += e[i];
+	return v;
 }
-void dfs2(int u, int fa)
-{
-	cnt[c[u]]++;
-	if (cnt[c[u]] == 1)
+void cdq(R *p, R n)
+{ //处理一个长度为n的子问题
+	if (n == 1)
+		return;
+	R m = n >> 1, i, j, k;
+	cdq(p, m);
+	cdq(p + m, n - m);	  //递归处理
+	memcpy(q, p, n << 2); //归并排序
+	for (k = i = 0, j = m; i < m && j < n; ++k)
 	{
-		sum -= col[c[u]];
-		num++;
+		R x = q[i], y = q[j];
+		if (b[x] <= b[y])
+			upd(c[p[k] = x], v[x]), ++i; //左边小，插入
+		else
+			cnt[y] += ask(c[p[k] = y]), ++j; //右边小，算贡献
 	}
-	ans[u] += sum + num * S;
-	for (rgi i = head[u]; i; i = edge[i].next)
-	{
-		int v = edge[i].to;
-		if (v == fa || done[v])
-			continue;
-		dfs2(v, u);
-	}
-	if (cnt[c[u]] == 1)
-	{
-		sum += col[c[u]];
-		num--;
-	}
-	cnt[c[u]]--;
-}
-void clear(int u, int fa)
-{
-	cnt[c[u]] = col[c[u]] = 0;
-	for (rgi i = head[u]; i; i = edge[i].next)
-	{
-		int v = edge[i].to;
-		if (v == fa || done[v])
-			continue;
-		clear(v, u);
-	}
-}
-void calc(int u)
-{
-	dfs1(u, 0);
-	ans[u] += sum;
-	for (rgi i = head[u]; i; i = edge[i].next)
-	{
-		int v = edge[i].to;
-		if (done[v])
-			continue;
-		cnt[c[u]]++;
-		sum -= sz[v];
-		col[c[u]] -= sz[v];
-		change(v, u, -1);
-		cnt[c[u]]--;
-		S = sz[u] - sz[v];
-		dfs2(v, u);
-		cnt[c[u]]++;
-		sum += sz[v];
-		col[c[u]] += sz[v];
-		change(v, u, 1); /*改回去*/
-		cnt[c[u]]--;
-	}
-	sum = 0;
-	num = 0;
-	clear(u, 0);
-}
-/*点分治*/
-void work(int u)
-{
-	calc(u);
-	done[u] = 1;
-	for (rgi i = head[u]; i; i = edge[i].next)
-	{
-		int v = edge[i].to;
-		if (done[v])
-			continue;
-		f[0] = Size = sz[v];
-		root = 0;
-		getroot(v, 0);
-		work(root);
-	}
+	for (; j < n; ++j)
+		cnt[q[j]] += ask(c[q[j]]); //注意此时可能没有完成统计
+	memcpy(p + k, q + i, (m - i) << 2);
+	for (--i; ~i; --i)
+		upd(c[q[i]], -v[q[i]]); //必须这样还原树状数组，memset是O(n^2)的
 }
 int main()
 {
-	//	freopen("","r",stdin);
-	//	freopen("","w",stdout);
-	ios::sync_with_stdio(0);
-	cin.tie(0); /*syn加速*/
-	n = read();
-	for (rgi i = 1; i <= n; ++i)
-		c[i] = read();
-	for (rgi i = 1; i <= n - 1; ++i)
+	fread(buf, 1, SZ, stdin);
+	R n = in(), i, j;
+	k = in();
+	e = new int[k + 9];
+	for (i = 0; i < n; ++i)
+		p[i] = i, a[i] = in(), b[i] = in(), c[i] = in();
+	sort(p, p + n, cmp);
+	for (i = 1, j = 0; i < n; ++i)
 	{
-		int u, v;
-		u = read();
-		v = read();
-		add(u, v);
-		add(v, u);
+		R x = p[i], y = p[j];
+		++v[y]; //模仿unique双指针去重，统计v
+		if (a[x] ^ a[y] || b[x] ^ b[y] || c[x] ^ c[y])
+			p[++j] = x;
 	}
-	f[0] = Size = n;
-	root = 0;
-	getroot(1, 0);
-	work(root);
-	for (rgi i = 1; i <= n; ++i)
-		cout << ans[i] << endl;
-	return 0;
+	++v[p[j++]];
+	cdq(p, j);
+	for (i = 0; i < j; ++i)
+		ans[cnt[p[i]] + v[p[i]] - 1] += v[p[i]]; //答案算好
+	for (pp = buf - 1, i = 0; i < n; ++i)
+		out(ans[i]), *++pp = '\n';
+	fwrite(buf, 1, pp - buf + 1, stdout);
 }

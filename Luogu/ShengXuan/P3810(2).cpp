@@ -10,8 +10,8 @@ void read(T &r)
 const int maxn = 2e5 + 100;
 struct node
 {
-    int a,b,c,cnt,ans;
-}A[maxn],B[maxn];
+    int a,b,c,d,cnt,id;
+}A[maxn],B[maxn],C[maxn];
 int n,maxk,tot;
 bool cmp(const node &x,const node &y)
 {
@@ -19,24 +19,34 @@ bool cmp(const node &x,const node &y)
     if(x.b != y.b) return x.b < y.b;
     return x.c < y.c;
 }
-int sum[maxn],vis[maxn],time;
-inline void add(int x,int k)
+int ans[maxn];
+
+void cdq2(int l,int r)
 {
-    while(x <= maxk) 
+    if(l == r) return;
+    int mid = l + r >> 1;
+    cdq2(l,mid),cdq2(mid + 1,r);
+    int p = l,q = mid + 1,k = l,sum = 0;
+    while(p <= mid && q <= r)
     {
-        if(vis[x] != time) sum[x] = 0,vis[x] = time;
-        sum[x] += k,x += x & -x;
+        if(B[p].c <= B[q].c)
+        {
+            sum += B[p].d;
+            C[k++] = B[p++];
+        }
+        else
+        {
+            if(!B[q].d) ans[B[q].id] += sum;
+            C[k++] = B[q++];
+        }
     }
-}
-inline int ask(int x)
-{
-    int res = 0;
-    while(x)
+    while(p <= mid) C[k++] = B[p++];
+    while(q <= r) 
     {
-        if(vis[x] != time) sum[x] = 0,vis[x] = time;
-        res += sum[x],x -= x & -x;
+        if(!B[q].d) ans[B[q].id] += sum;
+        C[k++] = B[q++];
     }
-    return res;
+    for(int i = l;i<=r;++i) B[i] = C[i];
 }
 void cdq(int l,int r)
 {
@@ -44,29 +54,29 @@ void cdq(int l,int r)
     int mid = l + r >> 1;
     cdq(l,mid),cdq(mid + 1,r);
     int p = l,q = mid + 1,k = l;
-    ++time;
     while(p <= mid && q <= r)
     {
         if(A[p].b <= A[q].b)
         {
-            add(A[p].c,A[p].cnt);
+            A[p].d = A[p].cnt;
             B[k++] = A[p++];
         }
         else
         {
-            A[q].ans += ask(A[q].c);
+            A[q].d = 0;
             B[k++] = A[q++];
         }
     }
-    while(p <= mid) B[k++] = A[p++];
-    while(q <= r) A[q].ans += ask(A[q].c),B[k++] = A[q++];
+    while(p <= mid) A[p].d = A[p].cnt,B[k++] = A[p++];
+    while(q <= r) A[q].d = 0,B[k++] = A[q++];
     for(int i = l;i<=r;++i) A[i] = B[i];
+    cdq2(l,r);
 }
 int d[maxn];
 int main()
 {
     read(n),read(maxk);
-    for(int i = 1;i<=n;++i) read(B[i].a),read(B[i].b),read(B[i].c),B[i].cnt = 1;
+    for(int i = 1;i<=n;++i) read(B[i].a),read(B[i].b),read(B[i].c),B[i].cnt = 1,B[i].id = i;
     std::sort(B + 1,B + 1 + n,cmp);
     for(int i = 1;i<=n;++i)
     {
@@ -75,7 +85,7 @@ int main()
         else A[++tot] = B[i];
     }
     cdq(1,tot);
-    for(int i = 1;i<=tot;++i) d[A[i].ans + A[i].cnt] += A[i].cnt;
+    for(int i = 1;i<=tot;++i) d[ans[A[i].id] + A[i].cnt] += A[i].cnt;
     for(int i = 1;i<=n;++i) printf("%d\n",d[i]);
     return 0;
 }

@@ -1,86 +1,95 @@
 #include <cstdio>
 #include <cstring>
 #include <algorithm>
-#define RG register
-#define R RG int
 using namespace std;
-const int N = 1e5 + 9, SZ = 2.2e6;
-char buf[SZ], *pp = buf - 1; //fread必备
-int k, a[N], b[N], c[N], p[N], q[N], v[N], cnt[N], ans[N], *e;
-inline int in()
-{
-	while (*++pp < '-')
-		;
-	R x = *pp & 15;
-	while (*++pp > '-')
-		x = x * 10 + (*pp & 15);
-	return x;
+typedef long long ll;
+const int maxn = 1e5 + 100;
+int val[maxn],to[maxn],n,m;
+namespace BIT{//树状数组,清空BIT我选择了打时间戳
+    int f[maxn],t[maxn],n,tot;
+    inline void init(int x){n = x;}
+    inline int lowbit(int x){return x & (-x);}
+    inline void clear(){tot++;}
+    inline void add(int pos,int x){
+        while(pos <= n){
+            if(t[pos] < tot)f[pos] = 0,t[pos] = tot;
+            f[pos] += x;
+            pos += lowbit(pos);
+        }
+    }
+    inline int query(int pos){
+        int ret = 0;
+        while(pos){
+            if(t[pos] < tot)f[pos] = 0,t[pos] = tot;
+            ret += f[pos];
+            pos -= lowbit(pos);
+        }
+        return ret;
+    }
+    inline int query(int a,int b){return query(b) - query(a - 1);}
 }
-void out(R x)
-{
-	if (x > 9)
-		out(x / 10);
-	*++pp = x % 10 | '0';
+ll ans[maxn];
+struct Node{//三元组,本来打算用tuple,但是担心常数还是选择手写
+    int x,y,z;
+    bool operator < (const Node &rhs)const{
+        return x < rhs.x;
+    }
+};
+namespace cdqa{//对应上文第一种情况
+    Node val[maxn],tmp[maxn];
+    void cdq(int a,int b){
+        if(a == b)return;
+        int mid = (a + b) >> 1;
+        cdq(a,mid),cdq(mid + 1,b);
+        int p1 = a,p2 = mid + 1,p = a;
+        while(p1 <= mid && p2 <= b){
+            if(val[p1].y < val[p2].y)BIT::add(val[p1].z,1),tmp[p++] = val[p1++];//按第二维从小到大的顺序归并
+            else ans[val[p2].x] += BIT::query(val[p2].z + 1,n),tmp[p++] = val[p2++];
+        }
+        while(p1 <= mid)tmp[p++] = val[p1++];
+        while(p2 <= b)ans[val[p2].x] += BIT::query(val[p2].z + 1,n),tmp[p++] = val[p2++];
+        for(int i = a;i <= b;i++)val[i] = tmp[i];
+        BIT::clear();
+    }
 }
-inline bool cmp(R x, R y)
-{ //直接对数组排序，注意三关键字
-	return a[x] < a[y] || (a[x] == a[y] && (b[x] < b[y] || (b[x] == b[y] && c[x] < c[y])));
+namespace cdqb{//第二种情况
+    Node val[maxn],tmp[maxn];
+    void cdq(int a,int b){
+        if(a == b)return;
+        int mid = (a + b) >> 1;
+        cdq(a,mid),cdq(mid + 1,b);
+        int p1 = a,p2 = mid + 1,p = a;
+        while(p1 <= mid && p2 <= b){
+            if(val[p1].y > val[p2].y)BIT::add(val[p1].z,1),tmp[p++] = val[p1++];
+            else ans[val[p2].x] += BIT::query(1,val[p2].z - 1),tmp[p++] = val[p2++];
+        }
+        while(p1 <= mid)tmp[p++] = val[p1++];
+        while(p2 <= b)ans[val[p2].x] += BIT::query(1,val[p2].z - 1),tmp[p++] = val[p2++];
+        for(int i = a;i <= b;i++)val[i] = tmp[i];
+        BIT::clear();
+    }
 }
-inline void upd(R i, R v)
-{ //树状数组修改
-	for (; i <= k; i += i & -i)
-		e[i] += v;
-}
-inline int ask(R i)
-{ //树状数组查前缀和
-	R v = 0;
-	for (; i; i -= i & -i)
-		v += e[i];
-	return v;
-}
-void cdq(R *p, R n)
-{ //处理一个长度为n的子问题
-	if (n == 1)
-		return;
-	R m = n >> 1, i, j, k;
-	cdq(p, m);
-	cdq(p + m, n - m);	  //递归处理
-	memcpy(q, p, n << 2); //归并排序
-	for (k = i = 0, j = m; i < m && j < n; ++k)
-	{
-		R x = q[i], y = q[j];
-		if (b[x] <= b[y])
-			upd(c[p[k] = x], v[x]), ++i; //左边小，插入
-		else
-			cnt[y] += ask(c[p[k] = y]), ++j; //右边小，算贡献
-	}
-	for (; j < n; ++j)
-		cnt[q[j]] += ask(c[q[j]]); //注意此时可能没有完成统计
-	memcpy(p + k, q + i, (m - i) << 2);
-	for (--i; ~i; --i)
-		upd(c[q[i]], -v[q[i]]); //必须这样还原树状数组，memset是O(n^2)的
-}
-int main()
-{
-	fread(buf, 1, SZ, stdin);
-	R n = in(), i, j;
-	k = in();
-	e = new int[k + 9];
-	for (i = 0; i < n; ++i)
-		p[i] = i, a[i] = in(), b[i] = in(), c[i] = in();
-	sort(p, p + n, cmp);
-	for (i = 1, j = 0; i < n; ++i)
-	{
-		R x = p[i], y = p[j];
-		++v[y]; //模仿unique双指针去重，统计v
-		if (a[x] ^ a[y] || b[x] ^ b[y] || c[x] ^ c[y])
-			p[++j] = x;
-	}
-	++v[p[j++]];
-	cdq(p, j);
-	for (i = 0; i < j; ++i)
-		ans[cnt[p[i]] + v[p[i]] - 1] += v[p[i]]; //答案算好
-	for (pp = buf - 1, i = 0; i < n; ++i)
-		out(ans[i]), *++pp = '\n';
-	fwrite(buf, 1, pp - buf + 1, stdout);
+int main(){
+#ifdef LOCAL
+    freopen("fafa.in","r",stdin);
+#endif
+    scanf("%d %d",&n,&m);
+    BIT::init(n);
+    for(int i = 1;i <= n;i++)scanf("%d",&val[i]),to[val[i]] = i;//由于读入的是元素,所以我们需要做一个映射得到下标
+    for(int i = 1;i <= n;i++){//读入
+        cdqa::val[i].x = 0,cdqa::val[i].y = i,cdqa::val[i].z = val[i];
+        cdqb::val[i].x = 0,cdqb::val[i].y = i,cdqb::val[i].z = val[i];
+    }
+    for(int pos,i = 1;i <= m;i++){//得到时间戳
+        scanf("%d",&pos);
+        cdqa::val[to[pos]].x = m - i + 1;
+        cdqb::val[to[pos]].x = m - i + 1;
+    }
+    sort(cdqa::val + 1,cdqa::val + 1 + n);
+    sort(cdqb::val + 1,cdqb::val + 1 + n);
+    cdqa::cdq(1,n);
+    cdqb::cdq(1,n);//计算
+    for(int i = 1;i <= m;i++)ans[i] += ans[i - 1];//前缀和
+    for(int i = m;i >= 1;i--)printf("%lld\n",ans[i]);//询问的是删除之后的逆序对数量,因此需要倒序输出.没有询问一开始的数量因而不需要输出ans[0]
+    return 0;
 }

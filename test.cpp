@@ -1,119 +1,118 @@
-// luogu-judger-enable-o2
-#include<cstdio>
-#include<cstring>
-#include<algorithm>
-#include<set>
-#include<map>
+#include <bits/stdc++.h>
 using namespace std;
-typedef long long ll;
-const int maxn=50010;
-ll n,cnt,maxh,maxx,f1[maxn],f2[maxn];
-double sum,g1[maxn],g2[maxn];
-struct node{ll t,h,v;}s[maxn];
-const bool cmpt(node a,node b){return a.t<b.t;}
-const bool cmph(node a,node b){return (a.h==b.h)?(a.t<b.t):a.h>b.h;}
-set<ll>st;
-map<ll,ll>id;
-ll max_[maxn*4];
-double cnt_[maxn*4];
-void clear(ll o,ll l,ll r)
+typedef long long LL;
+LL read()
 {
-    if(!max_[o])return;
-    max_[o]=0;
-    if(l==r)return;
-    int mid=(l+r)>>1;
-    clear(o<<1,l,mid);
-    clear(o<<1|1,mid+1,r);
+    LL q = 0;
+    char ch = ' ';
+    while (ch < '0' || ch > '9') ch = getchar();
+    while (ch >= '0' && ch <= '9') q = q * 10 + (LL)(ch - '0'), ch = getchar();
+    return q;
 }
-void update(ll o,ll l,ll r,ll x,ll v,double v2)
+#define RI register int
+typedef double db;
+const int N = 200005;
+int tot, n, t, rt, mx, js;
+int h[N], ne[N], to[N], fa[N], sz[N], vis[N], P[N];
+LL w[N], p[N], q[N], l[N], dis[N], f[N];
+
+int st[N], top;
+db sl[N];
+db slope(int x, int y) { return (db)(f[y] - f[x]) / (db)(dis[y] - dis[x]); }
+void ins(int x)
 {
-    if(l>x||x>r)return;
-    if(l==r)
+    while (top >= 2 && sl[top - 1] <= slope(st[top], x))
+        --top;
+    st[++top] = x, sl[top] = -1e18, sl[top - 1] = slope(st[top - 1], st[top]);
+}
+int query(db num)
+{
+    int l = 1, r = top, mid, re;
+    while (l <= r)
     {
-        if(max_[o]<v)max_[o]=v,cnt_[o]=0;
-        if(max_[o]==v)cnt_[o]+=v2;
+        mid = (l + r) >> 1;
+        if (sl[mid] <= num)
+            re = mid, r = mid - 1;
+        else
+            l = mid + 1;
+    }
+    return st[re];
+}
+
+void getrt(int x, int SZ)
+{
+    sz[x] = 1;
+    int bl = 0;
+    for (RI i = h[x]; i; i = ne[i])
+        if (!vis[to[i]])
+            getrt(to[i], SZ), sz[x] += sz[to[i]], bl = max(bl, sz[to[i]]);
+    bl = max(bl, SZ - sz[x]);
+    if (bl <= mx)
+        rt = x, mx = bl;
+    printf("gr:%d %d\n",bl,rt);
+}
+void dfs(int x)
+{
+    P[++js] = x;
+    for (RI i = h[x]; i; i = ne[i])
+        if (!vis[to[i]])
+            dfs(to[i]);
+}
+bool cmp(int x, int y) { return dis[x] - l[x] > dis[y] - l[y]; }
+void work(int now, int SZ)
+{
+    printf("solve: %d %d\n",now,SZ);
+    if (SZ == 1)
         return;
-    }
-    ll mid=(l+r)>>1;
-    update(o<<1,l,mid,x,v,v2);
-    update(o<<1|1,mid+1,r,x,v,v2);
-    max_[o]=max(max_[o<<1],max_[o<<1|1]);
-    cnt_[o]=0;
-    if(max_[o]==max_[o<<1])cnt_[o]+=cnt_[o<<1];
-    if(max_[o]==max_[o<<1|1])cnt_[o]+=cnt_[o<<1|1];
-}
-ll query(ll o,ll l,ll r,ll ql,ll qr,double&cntt)
-{
-    if(ql>r||l>qr){cntt=0;return 0;}
-    if(ql<=l&&r<=qr){cntt=cnt_[o];return max_[o];}
-    ll mid=(l+r)>>1;
-    double cntl=0,cntr=0;
-    ll al=query(o<<1,l,mid,ql,qr,cntl),ar=query(o<<1|1,mid+1,r,ql,qr,cntr);
-    cntt=0;
-    if(mid>=ql&&max(al,ar)==al)cntt+=cntl;
-    if(mid<=qr&&max(al,ar)==ar)cntt+=cntr;
-    return max(al,ar);
-}
-void CDQ1(ll l,ll r)
-{
-    if(l==r)return;
-    ll mid=(l+r)>>1;
-    sort(s+l,s+r+1,cmpt);
-    CDQ1(l,mid);
-    sort(s+l,s+mid+1,cmph);
-    sort(s+mid+1,s+r+1,cmph);
-    clear(1,1,n);
-    for(int i=l,j=mid+1;j<=r;j++)
+    mx = 1e9, getrt(now, SZ);
+    int x = rt, kmx = mx;
+    printf("%d %d %d\n",now,x,SZ);
+    for (RI i = h[x]; i; i = ne[i])
     {
-        while(i<=mid&&s[i].h>=s[j].h)update(1,1,n,s[i].v,f1[s[i].t],g1[s[i].t]),i++;
-        double cn=0;
-        ll t=query(1,1,n,s[j].v,n,cn);
-        if(!t)continue;
-        if(f1[s[j].t]<t+1)f1[s[j].t]=t+1,g1[s[j].t]=0;
-        if(f1[s[j].t]==t+1)g1[s[j].t]+=cn;
+        printf("del:%d %d\n", to[i], sz[to[i]]);
+        vis[to[i]] = 1, SZ -= sz[to[i]];
     }
-    CDQ1(mid+1,r);
-}
-void CDQ2(ll l,ll r)
-{
-    if(l==r)return;
-    ll mid=(l+r)>>1;
-    sort(s+l,s+r+1,cmpt);
-    CDQ2(l,mid);
-    sort(s+l,s+mid+1,cmph);
-    sort(s+mid+1,s+r+1,cmph);
-    clear(1,1,n);
-    for(int i=l,j=mid+1;j<=r;j++)
+    work(now, SZ);
+    js = 0;
+    for (RI i = h[x]; i; i = ne[i])
+        dfs(to[i]);
+    sort(P + 1, P + 1 + js, cmp);
+
+    int j = x;
+    top = 0;
+    for (RI i = 1; i <= js; ++i)
     {
-        while(i<=mid&&s[i].h>=s[j].h)update(1,1,n,s[i].v,f2[s[i].t],g2[s[i].t]),i++;
-        double cn=0;
-        ll t=query(1,1,n,s[j].v,n,cn);
-        if(!t)continue;
-        if(f2[s[j].t]<t+1)f2[s[j].t]=t+1,g2[s[j].t]=0;
-        if(f2[s[j].t]==t+1)g2[s[j].t]+=cn;
+        int y = P[i];
+        while (j != fa[now] && dis[j] >= dis[y] - l[y])
+            ins(j), j = fa[j];
+        if (top)
+        {
+            int k = query(p[y]);
+            f[y] = min(f[y], f[k] + (dis[y] - dis[k]) * p[y] + q[y]);
+        }
     }
-    CDQ2(mid+1,r);
+    for (RI i = h[x]; i; i = ne[i])
+        work(to[i], sz[to[i]]);
+}
+
+void add(int x, int y, int z) { to[++tot] = y, ne[tot] = h[x], h[x] = tot, w[tot] = z; }
+void getdis(int x)
+{
+    for (RI i = h[x]; i; i = ne[i])
+        dis[to[i]] = dis[x] + w[i], getdis(to[i]);
 }
 int main()
 {
-    scanf("%lld",&n);
-    for(int i=1;i<=n;i++)scanf("%lld%lld",&s[i].h,&s[i].v),s[i].t=i,st.insert(s[i].v),maxh=max(maxh,s[i].h);
-    for(set<ll>::iterator it=st.begin();it!=st.end();it++)id[*it]=++cnt;
-    for(int i=1;i<=n;i++)s[i].v=id[s[i].v];
-    for(int i=1;i<=n;i++)f1[i]=f2[i]=1,g1[i]=g2[i]=1.0;
-    CDQ1(1,n);
-    for(int i=1;i<=n;i++)maxx=max(maxx,f1[i]);
-    for(int i=1;i<=n;i++)if(f1[i]==maxx)sum+=g1[i];
-    printf("%lld\n",maxx);
-    for(int i=1;i<=n;i++)s[i].t=n-s[i].t+1,s[i].h=maxh-s[i].h+1,s[i].v=cnt-s[i].v+1;
-    sort(s+1,s+n+1,cmpt);
-    CDQ2(1,n);
-    for(int i = 1;i<=n;++i) printf("%d %.5f\n",f1[i],g1[i]);
-    for(int i = 1;i<=n;++i) printf("%d %.5f\n",f2[i],g2[i]);
-    for(int i=1;i<=n;i++)
+    int z;
+    n = read(), t = read();
+    for (RI i = 2; i <= n; ++i)
     {
-        if(f1[i]+f2[n-i+1]-1!=maxx)printf("%.5lf ",0.0);
-        else printf("%.5lf ",g1[i]*g2[n-i+1]/sum);
+        fa[i] = read(), z = read(), add(fa[i], i, z);
+        p[i] = read(), q[i] = read(), l[i] = read(), f[i] = LLONG_MAX;
     }
+    getdis(1);
+    work(1, n);
+    for (RI i = 2; i <= n; ++i)
+        printf("%lld\n", f[i]);
     return 0;
 }

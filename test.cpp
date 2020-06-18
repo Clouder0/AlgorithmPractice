@@ -1,118 +1,65 @@
-#include <bits/stdc++.h>
+#include <cstdio>
+#include <algorithm>
+#define M 200010
+
 using namespace std;
-typedef long long LL;
-LL read()
-{
-    LL q = 0;
-    char ch = ' ';
-    while (ch < '0' || ch > '9') ch = getchar();
-    while (ch >= '0' && ch <= '9') q = q * 10 + (LL)(ch - '0'), ch = getchar();
-    return q;
-}
-#define RI register int
-typedef double db;
-const int N = 200005;
-int tot, n, t, rt, mx, js;
-int h[N], ne[N], to[N], fa[N], sz[N], vis[N], P[N];
-LL w[N], p[N], q[N], l[N], dis[N], f[N];
 
-int st[N], top;
-db sl[N];
-db slope(int x, int y) { return (db)(f[y] - f[x]) / (db)(dis[y] - dis[x]); }
-void ins(int x)
-{
-    while (top >= 2 && sl[top - 1] <= slope(st[top], x))
-        --top;
-    st[++top] = x, sl[top] = -1e18, sl[top - 1] = slope(st[top - 1], st[top]);
-}
-int query(db num)
-{
-    int l = 1, r = top, mid, re;
-    while (l <= r)
-    {
-        mid = (l + r) >> 1;
-        if (sl[mid] <= num)
-            re = mid, r = mid - 1;
-        else
-            l = mid + 1;
-    }
-    return st[re];
-}
+int node_cnt, n, m;
+int sum[M<<5], rt[M], lc[M<<5], rc[M<<5];//线段树相关
+int a[M], b[M];//原序列和离散序列
+int p;//修改点
 
-void getrt(int x, int SZ)
+void build(int &t, int l, int r)
 {
-    sz[x] = 1;
-    int bl = 0;
-    for (RI i = h[x]; i; i = ne[i])
-        if (!vis[to[i]])
-            getrt(to[i], SZ), sz[x] += sz[to[i]], bl = max(bl, sz[to[i]]);
-    bl = max(bl, SZ - sz[x]);
-    if (bl <= mx)
-        rt = x, mx = bl;
-    printf("gr:%d %d\n",bl,rt);
-}
-void dfs(int x)
-{
-    P[++js] = x;
-    for (RI i = h[x]; i; i = ne[i])
-        if (!vis[to[i]])
-            dfs(to[i]);
-}
-bool cmp(int x, int y) { return dis[x] - l[x] > dis[y] - l[y]; }
-void work(int now, int SZ)
-{
-    printf("solve: %d %d\n",now,SZ);
-    if (SZ == 1)
+    t = ++node_cnt;
+    if(l == r)
         return;
-    mx = 1e9, getrt(now, SZ);
-    int x = rt, kmx = mx;
-    printf("%d %d %d\n",now,x,SZ);
-    for (RI i = h[x]; i; i = ne[i])
-    {
-        printf("del:%d %d\n", to[i], sz[to[i]]);
-        vis[to[i]] = 1, SZ -= sz[to[i]];
-    }
-    work(now, SZ);
-    js = 0;
-    for (RI i = h[x]; i; i = ne[i])
-        dfs(to[i]);
-    sort(P + 1, P + 1 + js, cmp);
-
-    int j = x;
-    top = 0;
-    for (RI i = 1; i <= js; ++i)
-    {
-        int y = P[i];
-        while (j != fa[now] && dis[j] >= dis[y] - l[y])
-            ins(j), j = fa[j];
-        if (top)
-        {
-            int k = query(p[y]);
-            f[y] = min(f[y], f[k] + (dis[y] - dis[k]) * p[y] + q[y]);
-        }
-    }
-    for (RI i = h[x]; i; i = ne[i])
-        work(to[i], sz[to[i]]);
+    int mid = (l + r) >> 1;
+    build(lc[t], l, mid);
+    build(rc[t], mid+1, r);
 }
 
-void add(int x, int y, int z) { to[++tot] = y, ne[tot] = h[x], h[x] = tot, w[tot] = z; }
-void getdis(int x)
+int modify(int o, int l, int r)
 {
-    for (RI i = h[x]; i; i = ne[i])
-        dis[to[i]] = dis[x] + w[i], getdis(to[i]);
+    int oo = ++node_cnt;
+    lc[oo] = lc[o]; rc[oo] = rc[o]; sum[oo] = sum[o] + 1;
+    if(l == r)
+        return oo;
+    int mid = (l + r) >> 1;
+    if(p <= mid) lc[oo] = modify(lc[oo], l, mid);
+    else rc[oo] = modify(rc[oo], mid+1, r);
+    return oo;
 }
+
+int query(int u, int v, int l, int r, int k)
+{
+    int ans, mid = ((l + r) >> 1), x = sum[lc[v]] - sum[lc[u]];
+    if(l == r)
+        return l;
+    if(x >= k) ans = query(lc[u], lc[v], l, mid, k);
+    else ans = query(rc[u], rc[v], mid+1, r, k-x);
+    return ans;
+}
+
 int main()
 {
-    int z;
-    n = read(), t = read();
-    for (RI i = 2; i <= n; ++i)
+    int l, r, k, q, ans;
+    scanf("%d%d", &n, &m);
+    for(register int i = 1; i <= n; i += 1)
+        scanf("%d", &a[i]), b[i] = a[i];
+    sort(b+1, b+n+1);
+    q = unique(b+1, b+n+1) - b - 1;
+    build(rt[0], 1, q);
+    for(register int i = 1; i <= n; i += 1)
     {
-        fa[i] = read(), z = read(), add(fa[i], i, z);
-        p[i] = read(), q[i] = read(), l[i] = read(), f[i] = LLONG_MAX;
+        p = lower_bound(b+1, b+q+1, a[i])-b;//可以视为查找最小下标的匹配值，核心算法是二分查找
+        rt[i] = modify(rt[i-1], 1, q);
     }
-    getdis(1);
-    work(1, n);
-    for (RI i = 2; i <= n; ++i)
-        printf("%lld\n", f[i]);
+    while(m--)
+    {
+        scanf("%d%d%d", &l, &r, &k);
+        ans = query(rt[l-1], rt[r], 1, q, k);
+        printf("%d\n", b[ans]);
+    }
     return 0;
 }

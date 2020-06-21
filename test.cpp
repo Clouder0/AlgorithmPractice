@@ -1,65 +1,108 @@
+
 #include <cstdio>
+#include <cstring>
+#include <cmath>
+#include <iostream>
 #include <algorithm>
-#define M 200010
-
 using namespace std;
-
-int node_cnt, n, m;
-int sum[M<<5], rt[M], lc[M<<5], rc[M<<5];//线段树相关
-int a[M], b[M];//原序列和离散序列
-int p;//修改点
-
-void build(int &t, int l, int r)
+const int MAX = 10005;
+struct segment_tree
 {
-    t = ++node_cnt;
-    if(l == r)
+    int v;
+    int ls, rs;
+} t[MAX * 400]; //线段树开nlogn大小
+struct operation
+{
+    bool b;
+    int l, r, k;
+    int pos, t;
+} q[MAX]; //因为要离散花所以要把所有数据输进来离线搞
+int n, m, a[MAX], o[MAX << 1], rt[MAX], len, tot, temp[2][20], cnt[2];
+char opt;
+void Modify(int &now, int l, int r, int pos, int val)
+{
+    if (!now)
+        now = ++tot;
+    t[now].v += val;
+    if (l == r)
         return;
-    int mid = (l + r) >> 1;
-    build(lc[t], l, mid);
-    build(rc[t], mid+1, r);
+    int mid = l + r >> 1;
+    if (pos <= mid)
+        Modify(t[now].ls, l, mid, pos, val);
+    else
+        Modify(t[now].rs, mid + 1, r, pos, val);
 }
-
-int modify(int o, int l, int r)
+void prepare_Modify(int x, int val)
 {
-    int oo = ++node_cnt;
-    lc[oo] = lc[o]; rc[oo] = rc[o]; sum[oo] = sum[o] + 1;
-    if(l == r)
-        return oo;
-    int mid = (l + r) >> 1;
-    if(p <= mid) lc[oo] = modify(lc[oo], l, mid);
-    else rc[oo] = modify(rc[oo], mid+1, r);
-    return oo;
+    int k = lower_bound(o + 1, o + len + 1, a[x]) - o;
+    for (int i = x; i <= n; i += i & -i)
+        Modify(rt[i], 1, len, k, val); //处理出需要修改哪log棵主席树
 }
-
-int query(int u, int v, int l, int r, int k)
+int Query(int l, int r, int k)
 {
-    int ans, mid = ((l + r) >> 1), x = sum[lc[v]] - sum[lc[u]];
-    if(l == r)
+    if (l == r)
         return l;
-    if(x >= k) ans = query(lc[u], lc[v], l, mid, k);
-    else ans = query(rc[u], rc[v], mid+1, r, k-x);
-    return ans;
+    int mid = l + r >> 1, sum = 0;
+    for (int i = 1; i <= cnt[1]; i++)
+        sum += t[t[temp[1][i]].ls].v;
+    for (int i = 1; i <= cnt[0]; i++)
+        sum -= t[t[temp[0][i]].ls].v;
+    if (k <= sum)
+    {
+        for (int i = 1; i <= cnt[1]; i++)
+            temp[1][i] = t[temp[1][i]].ls;
+        for (int i = 1; i <= cnt[0]; i++)
+            temp[0][i] = t[temp[0][i]].ls;
+        return Query(l, mid, k);
+    }
+    else
+    {
+        for (int i = 1; i <= cnt[1]; i++)
+            temp[1][i] = t[temp[1][i]].rs;
+        for (int i = 1; i <= cnt[0]; i++)
+            temp[0][i] = t[temp[0][i]].rs;
+        return Query(mid + 1, r, k - sum);
+    }
 }
-
+int prepare_Query(int l, int r, int k)
+{
+    memset(temp, 0, sizeof(temp)); //同修改，处理出需要进行相减操作的是哪log棵主席树
+    cnt[0] = cnt[1] = 0;
+    for (int i = r; i; i -= i & -i)
+        temp[1][++cnt[1]] = rt[i];
+    for (int i = l - 1; i; i -= i & -i)
+        temp[0][++cnt[0]] = rt[i];
+    return Query(1, len, k);
+}
 int main()
 {
-    int l, r, k, q, ans;
-    scanf("%d%d", &n, &m);
-    for(register int i = 1; i <= n; i += 1)
-        scanf("%d", &a[i]), b[i] = a[i];
-    sort(b+1, b+n+1);
-    q = unique(b+1, b+n+1) - b - 1;
-    build(rt[0], 1, q);
-    for(register int i = 1; i <= n; i += 1)
+    ios::sync_with_stdio(false);
+    cin >> n >> m;
+    for (int i = 1; i <= n; i++)
+        cin >> a[i], o[++len] = a[i];
+    for (int i = 1; i <= m; i++)
     {
-        p = lower_bound(b+1, b+q+1, a[i])-b;//可以视为查找最小下标的匹配值，核心算法是二分查找
-        rt[i] = modify(rt[i-1], 1, q);
+        cin >> opt;
+        q[i].b = (opt == 'Q');
+        if (q[i].b)
+            cin >> q[i].l >> q[i].r >> q[i].k;
+        else
+            cin >> q[i].pos >> q[i].t, o[++len] = q[i].t;
     }
-    while(m--)
+    sort(o + 1, o + len + 1);
+    len = unique(o + 1, o + len + 1) - o - 1; //离散 —— 排序 + 去重
+    for (int i = 1; i <= n; i++)
+        prepare_Modify(i, 1);
+    for (int i = 1; i <= m; i++)
     {
-        scanf("%d%d%d", &l, &r, &k);
-        ans = query(rt[l-1], rt[r], 1, q, k);
-        printf("%d\n", b[ans]);
+        if (q[i].b)
+            printf("%d\n", o[prepare_Query(q[i].l, q[i].r, q[i].k)]);
+        else
+        {
+            prepare_Modify(q[i].pos, -1);
+            a[q[i].pos] = q[i].t;
+            prepare_Modify(q[i].pos, 1);
+        }
     }
     return 0;
 }

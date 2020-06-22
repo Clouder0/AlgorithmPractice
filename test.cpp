@@ -1,107 +1,177 @@
-
 #include <cstdio>
-#include <cstring>
-#include <cmath>
-#include <iostream>
+#include <cctype>
 #include <algorithm>
 using namespace std;
-const int MAX = 10005;
-struct segment_tree
+typedef long long ll;
+const int MAXN = 550000;
+const int INF = 2E9 + 233;
+int read()
 {
-    int v;
-    int ls, rs;
-} t[MAX * 400]; //线段树开nlogn大小
-struct operation
-{
-    bool b;
-    int l, r, k;
-    int pos, t;
-} q[MAX]; //因为要离散花所以要把所有数据输进来离线搞
-int n, m, a[MAX], o[MAX << 1], rt[MAX], len, tot, temp[2][20], cnt[2];
-char opt;
-void Modify(int &now, int l, int r, int pos, int val)
-{
-    if (!now)
-        now = ++tot;
-    t[now].v += val;
-    if (l == r)
-        return;
-    int mid = l + r >> 1;
-    if (pos <= mid)
-        Modify(t[now].ls, l, mid, pos, val);
-    else
-        Modify(t[now].rs, mid + 1, r, pos, val);
+    int x = 0, w = 0;
+    char ch = 0;
+    while (!isdigit(ch)) w |= ch == '-', ch = getchar();
+    while (isdigit(ch)) x = (x << 3) + (x << 1) + (ch ^ 48), ch = getchar();
+    return w ? -x : x;
 }
-void prepare_Modify(int x, int val)
+struct SegmentTree
 {
-    int k = lower_bound(o + 1, o + len + 1, a[x]) - o;
-    for (int i = x; i <= n; i += i & -i)
-        Modify(rt[i], 1, len, k, val); //处理出需要修改哪log棵主席树
-}
-int Query(int l, int r, int k)
-{
-    if (l == r)
-        return l;
-    int mid = l + r >> 1, sum = 0;
-    for (int i = 1; i <= cnt[1]; i++)
-        sum += t[t[temp[1][i]].ls].v;
-    for (int i = 1; i <= cnt[0]; i++)
-        sum -= t[t[temp[0][i]].ls].v;
-    if (k <= sum)
+    struct Node
     {
-        for (int i = 1; i <= cnt[1]; i++)
-            temp[1][i] = t[temp[1][i]].ls;
-        for (int i = 1; i <= cnt[0]; i++)
-            temp[0][i] = t[temp[0][i]].ls;
-        return Query(l, mid, k);
-    }
-    else
+        int l, r;
+        int mx, historymax, se, cnt;
+        ll sum;
+        int max_tag, history_max_tag, tag, history_tag;
+    } tr[4 * MAXN];
+#define lc (o << 1)
+#define rc (o << 1 | 1)
+    void pushup(int o)
     {
-        for (int i = 1; i <= cnt[1]; i++)
-            temp[1][i] = t[temp[1][i]].rs;
-        for (int i = 1; i <= cnt[0]; i++)
-            temp[0][i] = t[temp[0][i]].rs;
-        return Query(mid + 1, r, k - sum);
-    }
-}
-int prepare_Query(int l, int r, int k)
-{
-    memset(temp, 0, sizeof(temp)); //同修改，处理出需要进行相减操作的是哪log棵主席树
-    cnt[0] = cnt[1] = 0;
-    for (int i = r; i; i -= i & -i)
-        temp[1][++cnt[1]] = rt[i];
-    for (int i = l - 1; i; i -= i & -i)
-        temp[0][++cnt[0]] = rt[i];
-    return Query(1, len, k);
-}
-int main()
-{
-    ios::sync_with_stdio(false);
-    cin >> n >> m;
-    for (int i = 1; i <= n; i++)
-        cin >> a[i], o[++len] = a[i];
-    for (int i = 1; i <= m; i++)
-    {
-        cin >> opt;
-        q[i].b = (opt == 'Q');
-        if (q[i].b)
-            cin >> q[i].l >> q[i].r >> q[i].k;
-        else
-            cin >> q[i].pos >> q[i].t, o[++len] = q[i].t;
-    }
-    sort(o + 1, o + len + 1);
-    len = unique(o + 1, o + len + 1) - o - 1; //离散 —— 排序 + 去重
-    for (int i = 1; i <= n; i++)
-        prepare_Modify(i, 1);
-    for (int i = 1; i <= m; i++)
-    {
-        if (q[i].b)
-            printf("%d\n", o[prepare_Query(q[i].l, q[i].r, q[i].k)]);
+        tr[o].sum = tr[lc].sum + tr[rc].sum;
+        tr[o].historymax = max(tr[lc].historymax, tr[rc].historymax);
+        if (tr[lc].mx == tr[rc].mx)
+        {
+            tr[o].mx = tr[lc].mx;
+            tr[o].se = max(tr[lc].se, tr[rc].se);
+            tr[o].cnt = tr[lc].cnt + tr[rc].cnt;
+        }
+        else if (tr[lc].mx > tr[rc].mx)
+        {
+            tr[o].mx = tr[lc].mx;
+            tr[o].se = max(tr[lc].se, tr[rc].mx);
+            tr[o].cnt = tr[lc].cnt;
+        }
         else
         {
-            prepare_Modify(q[i].pos, -1);
-            a[q[i].pos] = q[i].t;
-            prepare_Modify(q[i].pos, 1);
+            tr[o].mx = tr[rc].mx;
+            tr[o].se = max(tr[lc].mx, tr[rc].se);
+            tr[o].cnt = tr[rc].cnt;
+        }
+    }
+    void update(int o, int k1, int k1_, int k2, int k2_)
+    {
+        tr[o].sum += 1ll * k1 * tr[o].cnt + 1ll * k2 * (tr[o].r - tr[o].l + 1 - tr[o].cnt);
+        tr[o].historymax = max(tr[o].historymax, tr[o].mx + k1_);
+        tr[o].history_max_tag = max(tr[o].history_max_tag, tr[o].max_tag + k1_);
+        tr[o].mx += k1, tr[o].max_tag += k1;
+        tr[o].history_tag = max(tr[o].history_tag, tr[o].tag + k2_);
+        if (tr[o].se != -INF)
+            tr[o].se += k2;
+        tr[o].tag += k2;
+    }
+    void pushdown(int o)
+    {
+        int maxx = max(tr[lc].mx, tr[rc].mx);
+        if (tr[lc].mx == maxx) update(lc, tr[o].max_tag, tr[o].history_max_tag, tr[o].tag, tr[o].history_tag);
+        else update(lc, tr[o].tag, tr[o].history_tag, tr[o].tag, tr[o].history_tag);
+        if (tr[rc].mx == maxx) update(rc, tr[o].max_tag, tr[o].history_max_tag, tr[o].tag, tr[o].history_tag);
+        else update(rc, tr[o].tag, tr[o].history_tag, tr[o].tag, tr[o].history_tag);
+        tr[o].max_tag = tr[o].history_max_tag = tr[o].tag = tr[o].history_tag = 0;
+    }
+    void build(int o, int l, int r, int *a)
+    {
+        tr[o].l = l, tr[o].r = r;
+        tr[o].max_tag = tr[o].history_max_tag = tr[o].tag = tr[o].history_tag = 0;
+        if (l == r)
+        {
+            tr[o].sum = tr[o].historymax = tr[o].mx = a[l];
+            tr[o].se = -INF, tr[o].cnt = 1;
+            return;
+        }
+        int mid = l + r >> 1;
+        build(lc, l, mid, a);
+        build(rc, mid + 1, r, a);
+        pushup(o);
+    }
+    void modify1(int o, int l, int r, int k)
+    {
+        if (tr[o].l > r || tr[o].r < l)
+            return;
+        if (l <= tr[o].l && tr[o].r <= r)
+        {
+            update(o, k, k, k, k);
+            return;
+        }
+        pushdown(o);
+        modify1(lc, l, r, k), modify1(rc, l, r, k);
+        pushup(o);
+    }
+    void modify2(int o, int l, int r, int k)
+    {
+        if (tr[o].l > r || tr[o].r < l || k >= tr[o].mx)
+            return;
+        if (l <= tr[o].l && tr[o].r <= r && k > tr[o].se)
+        {
+            update(o, k - tr[o].mx, k - tr[o].mx, 0, 0);
+            return;
+        }
+        pushdown(o);
+        modify2(lc, l, r, k), modify2(rc, l, r, k);
+        pushup(o);
+    }
+    ll query3(int o, int l, int r)
+    {
+        if (tr[o].l > r || tr[o].r < l)
+            return 0;
+        if (l <= tr[o].l && tr[o].r <= r)
+            return tr[o].sum;
+        pushdown(o);
+        return query3(lc, l, r) + query3(rc, l, r);
+    }
+    int query4(int o, int l, int r)
+    {
+        if (tr[o].l > r || tr[o].r < l)
+            return -INF;
+        if (l <= tr[o].l && tr[o].r <= r)
+            return tr[o].mx;
+        pushdown(o);
+        return max(query4(lc, l, r), query4(rc, l, r));
+    }
+    int query5(int o, int l, int r)
+    {
+        if (tr[o].l > r || tr[o].r < l)
+            return -INF;
+        if (l <= tr[o].l && tr[o].r <= r)
+            return tr[o].historymax;
+        pushdown(o);
+        return max(query5(lc, l, r), query5(rc, l, r));
+    }
+#undef lc
+#undef rc
+} sgt;
+int a[MAXN];
+int main()
+{
+    //	freopen("segbeats.in", "r", stdin);
+    //	freopen("segbeats.out", "w", stdout);
+    int n = read(), m = read();
+    for (int i = 1; i <= n; i++)
+        a[i] = read();
+    sgt.build(1, 1, n, a);
+    while (m--)
+    {
+        int op = read(), l, r, k;
+        switch (op)
+        {
+        case 1:
+            l = read(), r = read(), k = read();
+            sgt.modify1(1, l, r, k);
+            break;
+        case 2:
+            l = read(), r = read(), k = read();
+            sgt.modify2(1, l, r, k);
+            break;
+        case 3:
+            l = read(), r = read();
+            printf("%lld\n", sgt.query3(1, l, r));
+            break;
+        case 4:
+            l = read(), r = read();
+            printf("%d\n", sgt.query4(1, l, r));
+            break;
+        case 5:
+            l = read(), r = read();
+            printf("%d\n", sgt.query5(1, l, r));
+            break;
         }
     }
     return 0;

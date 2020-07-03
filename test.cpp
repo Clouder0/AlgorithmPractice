@@ -1,134 +1,82 @@
-#include <bits/stdc++.h>
-using namespace std;
-const int INF = 2e9 + 1;
-#define size(a) int((a).size())
-void updateSt(set<pair<int, int> > &st, set<pair<int, int> > &fr, int &sum, int need)
+#include <cstdio>
+#include <ctype.h>
+const int bufSize = 1000000;
+inline char nc()
 {
-    need = max(need, 0);
-    while (true)
+    static char buf[bufSize],*p1 = buf,*p2 = buf;
+    return p1==p2&&(p2=(p1=buf)+fread(buf,1,bufSize,stdin),p1==p2)?EOF:*p1++;
+}
+template<typename T>
+inline void read(T &r)
+{
+    static char c;
+    r = 0;
+    for(c = nc();!isdigit(c);) c = nc();
+    for(;isdigit(c);c = nc()) r = r * 10 + c - 48;
+}
+const int maxn = 5e5 + 100;
+struct node
+{
+    int to,next;
+}E[maxn<<1];
+int head[maxn];
+inline void add(const int &x,const int &y)
+{
+    static int tot = 0;
+    E[++tot].to = y,E[tot].next = head[x],head[x] = tot;
+}
+int n,m,s;
+int fa[maxn],size[maxn],son[maxn],dep[maxn],top[maxn];
+void dfs1(int u)
+{
+    size[u] = 1;
+    for(int p = head[u];p;p=E[p].next)
     {
-        bool useful = false;
-        while (size(st) > need)
-        {
-            sum -= st.rbegin()->first;
-            fr.insert(*st.rbegin());
-            st.erase(prev(st.end()));
-            useful = true;
-        }
-        while (size(st) < need && size(fr) > 0)
-        {
-            sum += fr.begin()->first;
-            st.insert(*fr.begin());
-            fr.erase(fr.begin());
-            useful = true;
-        }
-        while (!st.empty() && !fr.empty() && fr.begin()->first < st.rbegin()->first)
-        {
-            sum -= st.rbegin()->first;
-            sum += fr.begin()->first;
-            fr.insert(*st.rbegin());
-            st.erase(prev(st.end()));
-            st.insert(*fr.begin());
-            fr.erase(fr.begin());
-            useful = true;
-        }
-        if (!useful)
-            break;
+        int v = E[p].to;
+        if(v == fa[u]) continue;
+        fa[v] = u,dep[v] = dep[u] + 1;
+        dfs1(v),size[u] += size[v];
+        if(size[v] > size[son[u]]) son[u] = v;
     }
+}
+void dfs2(int u)
+{
+    if(!son[u]) return;
+    top[son[u]] = top[u],dfs2(son[u]);
+    for(int p = head[u];p;p=E[p].next)
+    {
+        int v = E[p].to;
+        if(v == fa[u] || v == son[u]) continue;
+        top[v] = v,dfs2(v);
+    }
+}
+inline int lca(int x,int y)
+{
+    while(top[x] != top[y])
+    {
+        if(dep[top[x]] < dep[top[y]])
+        {
+            int t = x;
+            x = y,y = t;
+        }
+        x = fa[top[x]];
+    }
+    return dep[x] < dep[y] ? x : y;
 }
 int main()
 {
-    int n, m, k;
-    cin >> n >> m >> k;
-    vector<pair<int, int> > times[4];
-    vector<int> sums[4];
-    for (int i = 0; i < n; ++i)
+    read(n),read(m),read(s);
+    for(int i = 1;i<n;++i)
     {
-        int t, a, b;
-        cin >> t >> a >> b;
-        times[a * 2 + b].push_back({t, i});
+        int x,y;
+        read(x),read(y),add(x,y),add(y,x);
     }
-    for (int i = 0; i < 4; ++i)
+    dfs1(s),dfs2(s);
+    while(m--)
     {
-        sort(times[i].begin(), times[i].end());
-        sums[i].push_back(0);
-        for (auto it : times[i]) sums[i].push_back(sums[i].back() + it.first);
+        int x,y;
+        read(x),read(y);
+        printf("%d\n",lca(x,y));
     }
-
-    int ans = INF;
-    int pos = INF;
-    set<pair<int, int> > st;
-    set<pair<int, int> > fr;
-    int sum = 0;
-    vector<int> res;
-    for (int iter = 0; iter < 2; ++iter)
-    {
-        st.clear(),fr.clear();
-        sum = 0;
-        int start = 0;
-        while (k - start >= size(sums[1]) || k - start >= size(sums[2]) || m - start - (k - start) * 2 < 0)
-            ++start;
-        if (start >= size(sums[3]))
-        {
-            cout << -1 << endl;
-            return 0;
-        }
-        int need = m - start - (k - start) * 2;
-        for (int i = 0; i < 3; ++i)
-            for (int p = size(times[i]) - 1; p >= (i == 0 ? 0 : k - start); --p)
-                fr.insert(times[i][p]);
-        updateSt(st, fr, sum, need);
-        for (int cnt = start; cnt < (iter == 0 ? size(sums[3]) : pos); ++cnt)
-        {
-            if (k - cnt >= 0)
-            {
-                if (cnt + (k - cnt) * 2 + size(st) == m)
-                {
-                    if (ans > sums[3][cnt] + sums[1][k - cnt] + sums[2][k - cnt] + sum)
-                    {
-                        ans = sums[3][cnt] + sums[1][k - cnt] + sums[2][k - cnt] + sum;
-                        pos = cnt + 1;
-                    }
-                }
-            }
-            else
-            {
-                if (cnt + size(st) == m)
-                {
-                    if (ans > sums[3][cnt] + sum)
-                    {
-                        ans = sums[3][cnt] + sum;
-                        pos = cnt + 1;
-                    }
-                }
-            }
-            if (iter == 1 && cnt + 1 == pos)
-                break;
-            need -= 1;
-            if (k - cnt > 0)
-            {
-                need += 2;
-                fr.insert(times[1][k - cnt - 1]);
-                fr.insert(times[2][k - cnt - 1]);
-            }
-            updateSt(st, fr, sum, need);
-        }
-        if (iter == 1)
-        {
-            for (int i = 0; i + 1 < pos; ++i)
-                res.push_back(times[3][i].second);
-            for (int i = 0; i <= k - pos; ++i)
-            {
-                res.push_back(times[1][i].second);
-                res.push_back(times[2][i].second);
-            }
-            for (auto [value, position] : st)
-                res.push_back(position);
-        }
-    }
-    cout << ans << endl;
-    for (auto it : res)
-        cout << it + 1 << " ";
-    cout << endl;
     return 0;
 }

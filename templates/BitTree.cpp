@@ -11,19 +11,28 @@ const int maxn = 5e5 + 100;
 int n,m;
 struct Bit
 {
-    long long sum[maxn];
+    int sum[maxn];
     inline int lowbit(const int &x){return x & -x;}
-    inline void add(int x,int k)
-    {
-        for (; x <= n; x += lowbit(x)) sum[x] += k;
-    }
+    inline void add(int x,int k){ for (; x <= n; x += lowbit(x)) sum[x] += k;}
     inline long long ask(int x)
     {
-        long long res = 0;
+        int res = 0;
         for (; x > 0; x -= lowbit(x)) res += sum[x];
         return res;
     }
-}A,B;
+};
+struct BitSeg
+{
+    Bit A,B;
+    inline void builtin_add(int x, int k)
+    {
+        A.add(x, k), A.add(x + 1, -k);
+        B.add(x, k * x), B.add(x + 1, -k * (x + 1));
+    }
+    inline void add(int l,int r,int k) {builtin_add(l,k),builtin_add(r + 1,-k);}
+    inline int ask(int x) { return A.ask(x) * (x + 1) - B.ask(x); }
+    inline int ask(int l, int r) { return ask(r) - ask(l - 1); }
+};
 int main()
 {
     read(n),read(m);

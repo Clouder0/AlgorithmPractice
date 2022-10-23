@@ -4,6 +4,10 @@ template <const unsigned int _MOD>
 struct ModNum
 {
     unsigned int x;
+    ModNum()
+    {
+        x = 0;
+    }
     ModNum(unsigned int t) : x(t)
     {
     }

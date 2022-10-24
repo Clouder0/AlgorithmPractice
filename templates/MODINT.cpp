@@ -1,51 +1,69 @@
 #include <cstdio>
 
-template <const unsigned int _MOD>
+
+// T supports long long/int
+template <const unsigned int _MOD, typename T>
 struct ModNum
 {
-    unsigned int x;
-    ModNum()
-    {
-        x = 0;
-    }
-    ModNum(unsigned int t) : x(t)
+    T x;
+    ModNum() { x = 0; }
+    template <typename _Tp>
+    ModNum(_Tp t) : x(t)
     {
     }
-    ModNum operator+(const ModNum& other)
-    {
-        unsigned int ret = this->x + other.x;
-        if (ret >= _MOD) ret -= _MOD;
-        return ModNum(ret);
-    }
+    ModNum(const ModNum& other) : x(other.x) {}
+    explicit operator T() const { return x; }
     ModNum& operator+=(const ModNum& other)
     {
-        this->x += other.x;
-        if (this->x >= _MOD) this->x -= _MOD;
+        x += other.x;
+        if (this->x >= _MOD) x -= _MOD;
         return *this;
     }
-    ModNum operator-(const ModNum& other)
+    ModNum& operator-=(const ModNum& other) { return *this += _MOD - other.x; }
+    ModNum& operator*=(const ModNum& other)
     {
-        if (this->x < other.x) return ModNum(_MOD - other.x + this->x);
-        return ModNum(this->x - other.x);
-    }
-    ModNum& operator-=(const ModNum& other)
-    {
-        if (this->x < other.x)
-            this->x = _MOD - other.x + this->x;
-        else
-            this->x = this->x - other.x;
-        return *this;
-    }
-    ModNum operator*(const ModNum& other)
-    {
-        unsigned long long ret = 1ll * this->x * other.x;
+        unsigned long long ret = 1ll * x * other.x;
         if (ret >= _MOD) ret %= _MOD;
-        return ModNum(ret);
+        this-> x = ret;
+        return *this;
+    }
+   ModNum inv() const
+    {
+        T a = x, b = _MOD, u = 1, v = 0;
+        while (b)
+        {
+            T t = a / b;
+            a -= t * b; std::swap(a, b);
+            u -= t * v; std::swap(u, v);
+        }
+        return ModNum(u);
+    }
+    ModNum& operator/=(const ModNum& other) { return *this *= other.inv(); }
+    friend ModNum operator+(const ModNum& a, const ModNum& b) { return ModNum(a) += b; }
+    friend ModNum operator-(const ModNum& a, const ModNum& b) { return ModNum(a) -= b; }
+    friend ModNum operator*(const ModNum& a, const ModNum& b) { return ModNum(a) *= b; }
+    friend ModNum operator/(const ModNum& a, const ModNum& b) { return ModNum(a) /= b; }
+    bool operator==(const ModNum& other) { return x == other.x; }
+    bool operator!=(const ModNum& other) { return x != other.x; }
+    bool operator<(const ModNum& other) { return x < other.x; }
+    bool operator>(const ModNum& other) { return x > other.x; }
+    bool operator<=(const ModNum& other) { return x <= other.x; }
+    bool operator>=(const ModNum& other) { return x >= other.x; }
+
+    template <typename _Istream>
+    friend _Istream& operator>>(_Istream& is, ModNum& self)
+    {
+        return is >> self.m_val;
+    }
+    template <typename _Ostream>
+    friend _Ostream& operator<<(_Ostream& os, const ModNum& self)
+    {
+        return os << self.m_val;
     }
 };
 int main()
 {
-    ModNum<17> a(10), b(5);
+    ModNum<17, int> a(10), b(5);
     printf("%d\n", (a + b + b).x);
     printf("%d\n", (a * b).x);
     a += b;

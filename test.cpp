@@ -1,68 +1,61 @@
 #include <algorithm>
-#include <bitset>
 #include <cstdio>
-#include <cstring>
-#include <iostream>
-#include <queue>
-#define MAXN 50016
-#define LL long long
-using namespace std;
-int n;
-char a[MAXN], b[MAXN];
-int sum[MAXN];
-int minn, maxx;
-bitset<MAXN> S[MAXN], ans, L, map1, map0;
-void init()
+
+const int maxn = 2e5 + 10;
+
+struct PersistentSegTree
 {
-    map1 = map0 = ans = L = bitset<MAXN>();
-    for (int i = 0; i <= maxx - minn; i++) S[i] = bitset<MAXN>();
-    minn = maxx = 0;
-    for (int i = 1; i <= n; i++) sum[i] = 0;
-}
+    struct node
+    {
+        int ls, rs;
+        long long sum, tag;
+    } A[maxn << 5];
+    int a[maxn], cnt;
+    inline void clear() { cnt = 0; }
+    inline int newnode() { return ++cnt; }
+    inline int newnode(int old)
+    {
+        if (!old) return newnode();
+        A[++cnt] = A[old];
+        return cnt;
+    }
+    int seg_add(int l, int r, int p, int ll, int rr, int k)
+    {
+        int now = newnode(p);
+        A[now].sum += 1ll * k * (std::min(rr,r) - std::max(l,ll) + 1);
+        if (l >= ll && r <= rr) return A[now].tag += k, now;
+        int mid = (l + r) >> 1;
+        if (ll <= mid) A[now].ls = seg_add(l, mid, A[now].ls, ll, rr, k);
+        if (rr > mid) A[now].rs = seg_add(mid + 1,r,A[now].rs, ll, rr, k);
+        return now;
+    }
+    long long ask(int l,int r,int p, int ll, int rr, long long tagsum)
+    {
+        if(!p) return 0;
+        if (l >= ll && r <= rr) return A[p].sum + tagsum * (r - l + 1);
+        int mid = (l + r) >> 1;
+        long long ret = 0;
+        tagsum += A[p].tag;
+        if (ll <= mid) ret += ask(l,mid,A[p].ls, ll, rr, tagsum);
+        if (rr > mid) ret += ask(mid + 1,r,A[p].rs, ll, rr, tagsum);
+        return ret;
+    }
+};
+PersistentSegTree T;
+int n, m, root[maxn];
 int main()
 {
-    // freopen("input.txt","r",stdin);
-    int t;
-    scanf("%d", &t);
-    while (t--)
+    scanf("%d%d", &n, &m);
+    for (int i = 1; i <= n; ++i) scanf("%d", T.a + i);
+    for (int i = 1; i <= n; ++i) root[0] = T.seg_add(1,n,root[0], i, i, T.a[i]);
+    for (int t = 1; t <= m; ++t)
     {
-        init();
-
-        ans = ~ans;
-        scanf("%d", &n);
-        scanf("%s", a + 1);
-        scanf("%s", b + 1);
-
-        for (int i = 1; i <= n; i++)
-        {
-            sum[i] = sum[i - 1] + ((a[i] - '0') ? 1 : -1);
-            minn = min(minn, sum[i]);
-            maxx = max(maxx, sum[i]);
-        }
-
-        bitset<MAXN>* T = S - minn;
-
-        T[0][n] = 1;
-        map1 = ~map1;  // all 1 ,map1 all 0
-
-        for (int i = 1, presum = 0; i <= n; i++)
-        {
-            map0[i] = 1;
-            map1[i] = 0;
-
-            if (a[i] == '0')
-                L ^= T[--presum];
-            else
-                L ^= T[presum++];
-            T[presum][n - i] = 1;
-            int hi = L[n];
-            if (hi)
-                ans &= (b[i] == '1' ? (L >> (n - i)) | map1 : ~((L >> (n - i)) | map1));
-            else
-                ans &= (b[i] == '1' ? (L >> (n - i)) & map0 : ~((L >> (n - i)) & map0));
-        }
-        for (int i = 1; i <= n; i++) printf("%d", ans[i] ? 1 : 0);
-        putchar('\n');
+        int opt, x, y, k;
+        scanf("%d%d%d", &opt, &x, &y);
+        if (opt == 1)
+            scanf("%d", &k), root[t] = T.seg_add(1,n,root[t - 1], x, y, k);
+        else
+            root[t] = root[t - 1], printf("%lld\n", T.ask(1,n,root[t], x, y, 0));
     }
     return 0;
 }

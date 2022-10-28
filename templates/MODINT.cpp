@@ -1,6 +1,5 @@
 #include <cstdio>
 
-
 // T supports long long/int
 template <const unsigned int _MOD, typename T>
 struct ModNum
@@ -24,17 +23,17 @@ struct ModNum
     {
         unsigned long long ret = 1ll * x * other.x;
         if (ret >= _MOD) ret %= _MOD;
-        this-> x = ret;
+        this->x = ret;
         return *this;
     }
-   ModNum inv() const
+    ModNum inv() const
     {
         T a = x, b = _MOD, u = 1, v = 0;
         while (b)
         {
             T t = a / b;
-            a -= t * b; std::swap(a, b);
-            u -= t * v; std::swap(u, v);
+            a -= t * b, std::swap(a, b);
+            u -= t * v, std::swap(u, v);
         }
         return ModNum(u);
     }

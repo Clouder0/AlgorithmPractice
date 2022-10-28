@@ -1,19 +1,23 @@
+#include <algorithm>
 #include <cstdio>
 #include <queue>
-template <typename T>
-inline T min(const T& a, const T& b) { return a < b ? a : b; }
-#define ll long long
+
+using namespace std;
 const int maxn = 1e4 + 100, maxm = 2e4 + 100;
+
+namespace Dinic
+{
 int n, m, S, T;
 struct node
 {
     int to, next, val;
 } E[maxm];
 int cur[maxn], head[maxn], tot = 1;
-inline void add(const int& x, const int& y, const int& v)
+inline void _add(const int& x, const int& y, const int& v)
 {
     E[++tot].to = y, E[tot].next = head[x], E[tot].val = v, head[x] = tot;
 }
+inline void add(int x, int y, int v) { _add(x, y, v), _add(y, x, 0); }
 int dep[maxn], q[maxn], qt, qh;
 inline bool BFS()
 {
@@ -29,10 +33,10 @@ inline bool BFS()
     }
     return 0;
 }
-ll dfs(int u, ll flow)
+long long dfs(int u, long long flow)
 {
     if (u == T || !flow) return flow;
-    ll sumflow = 0, vflow;
+    long long sumflow = 0, vflow;
     for (int& p = cur[u]; p; p = E[p].next)
     {
         int v = E[p].to;
@@ -44,12 +48,25 @@ ll dfs(int u, ll flow)
     }
     return sumflow;
 }
+long long Dinic()
+{
+    init();
+    long long ans = 0;
+    while (BFS()) ans += dfs(S, 1ll << 60);
+    return ans;
+}
+void init()
+{
+    for (int i = 1; i <= n; ++i) cur[i] = head[i] = 0;
+    tot = 1;
+}
+}  // namespace Dinic
+
 int main()
 {
-    scanf("%d %d %d %d", &n, &m, &S, &T);
-    for (int i = 1, x, y, z; i <= m; ++i) scanf("%d %d %d", &x, &y, &z), add(x, y, z), add(y, x, 0);
-    ll ans = 0;
-    while (BFS()) ans += dfs(S, 1ll << 60);
-    printf("%lld\n", ans);
+    namespace d = Dinic;
+    scanf("%d %d %d %d", &d::n, &d::m, &d::S, &d::T);
+    for (int i = 1, x, y, z; i <= d::m; ++i) scanf("%d %d %d", &x, &y, &z), d::add(x, y, z);
+    printf("%lld\n", d::Dinic());
     return 0;
 }

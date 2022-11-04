@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <ctype.h>
 const int bufSize = 1e6;
+#define int long long
 inline char nc()
 {
     #ifdef DEBUG
@@ -28,44 +29,62 @@ inline T read(T &r)
     return r *= flag;
 }
 const int maxn = 2e5 + 100;
-int T, n, m, a[maxn], nxt[maxn];
-long long sum[maxn], pre[maxn];
+int T, n, q, a[maxn], pre[maxn];
+long long sum[maxn];
 inline long long calc(int l, int r) { return sum[r] - sum[l - 1] - (pre[r] ^ pre[l - 1]); }
-int main()
+int from[maxn], to[maxn];
+signed main()
 {
     read(T);
     while(T--)
     {
-        read(n), read(m);
-        for (int i = 1; i <= n; ++i) read(a[i]);
-        for (int i = 1; i <= n; ++i) pre[i] = pre[i - 1] ^ a[i], sum[i] = sum[i - 1] + a[i];
-//        nxt[n + 1] = n + 1;
-        nxt[n] = n;
-        for (int i = n - 1; i; --i) nxt[i] = (a[i] == 0 && a[i+1] == 0 ? nxt[i + 1] : i);
-        while(m--)
+        read(n), read(q);
+        for (int i = 1; i <= n; ++i) read(a[i]), pre[i] = pre[i - 1] ^ a[i], sum[i] = sum[i - 1] + a[i];
+        for (int i = 1; i <= n; ++i) from[i] = to[i] = i;
+        for (int i = n - 1; i; --i)
+            if (a[i + 1] == 0 && a[i] == 0) to[i] = to[i + 1];
+        for (int i = 2; i <= n; ++i)
+            if (a[i] == 0 && a[i - 1] == 0) from[i] = from[i - 1];
+        while(q--)
         {
-            int L, R;
+            int L,R;
             read(L), read(R);
             long long res = calc(L, R);
-            int minn = 1 << 30, resl, resr;
-            for (int ll = L, i = 0; ll <= R && i < 50; ll = nxt[ll] + 1, ++i)
+            int resl, resr, reslen = 1 << 30;
+            for (int i = 0, l = L; l <= R && i < 40; ++i)
             {
-                int l = ll, r = R, mid, ans, ansl, ansr;
-                while (l <= r)
+                if (calc(l, R) < res) break;
+                int al = l, ar = R, mid, ans = -1;
+                while(al <= ar)
                 {
-                    mid = (l + r) >> 1;
-                    if (calc(ll, mid) == res)
-                        ans = mid, r = mid - 1, ansl = ll, ansr = mid;
+                    mid = (al + ar) >> 1;
+                    if (calc(l, mid) == res)
+                        ar = mid - 1, ans = mid;
                     else
-                        l = mid + 1;
+                        al = mid + 1;
                 }
-                if (ansr - ansl + 1 < minn)
-                {
-                    minn = ans - ll + 1;
-                    resl = ansl, resr = ansr;
-                }
+                if (ans != -1 && ans - l + 1 < reslen)
+                    reslen = ans - l + 1, resl = l, resr = ans;
+                l = to[l] + 1;
             }
-            printf("%d %d\n", resl, resr);
+            for (int i = 0, r = R; r >= L && i < 40; ++i)
+            {
+                if(calc(L, r) < res) break;
+                int al = L, ar = r, mid, ans = -1;
+                while(al <= ar)
+                {
+                    mid = (al + ar) >> 1;
+                    if (calc(mid, r) == res)
+                        al = mid + 1, ans = mid;
+                    else
+                        ar = mid - 1;
+                }
+                if (ans != -1 && r - ans + 1 < reslen)
+                    reslen = r - ans + 1, resl = ans, resr = r;
+                r = from[r] - 1;
+            }
+
+            printf("%lld %lld\n", resl, resr);
         }
     }
     return 0;

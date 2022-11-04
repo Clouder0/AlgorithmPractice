@@ -48,17 +48,16 @@ long long dfs(int u, long long flow)
     }
     return sumflow;
 }
+void init()
+{
+    for (int i = 1; i <= n; ++i) head[i] = 0;
+    tot = 1;
+}
 long long Dinic()
 {
-    init();
     long long ans = 0;
     while (BFS()) ans += dfs(S, 1ll << 60);
     return ans;
-}
-void init()
-{
-    for (int i = 1; i <= n; ++i) cur[i] = head[i] = 0;
-    tot = 1;
 }
 }  // namespace Dinic
 

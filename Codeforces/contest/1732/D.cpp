@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <ctype.h>
 #include <map>
+#include <vector>
 #include <set>
 using namespace std;
 const int bufSize = 1e6;
@@ -33,13 +34,10 @@ inline T read(T& r)
     return r *= flag;
 }
 const int maxn = 2e5 + 100;
-const int maxq = 800;
 int n;
 long long x, k;
-int mex[maxq];
 set<long long> all;
-set<long long> S[maxq];
-map<long long, long long> rem;
+map<long long, set<long long>> del, in;
 int main()
 {
     scanf("%d", &n);
@@ -50,22 +48,27 @@ int main()
         if (s[0] == '+')
         {
             scanf("%lld", &x);
-            if (all.find(x) != all.end()) continue;
             all.insert(x);
         }
         else if(s[0] == '-')
         {
-
+            scanf("%lld",&x);
+            all.erase(x);
+            for (auto it = in[x].begin(); it != in[x].end(); ++it) del[*it].insert(x);
         }
         else if (s[0] == '?')
         {
             scanf("%lld", &k);
-            int res = 0;
-            auto it = rem.find(k);
-            if (it != rem.end()) res = it->second;
-            while (all.find(1ll * k * (res + 1)) != all.end()) ++res;
-            rem[k] = res;
-            printf("%lld\n", 1ll * (res + 1) * k);
+            del[k].insert(k);
+            long long res = k;
+            in[k].insert(k);
+            while(all.find(res) != all.end())
+            {
+                del[k].erase(res);
+                if (del[k].empty()) del[k].insert(res + k);
+                res = *del[k].begin(), in[res].insert(k);
+            }
+            printf("%lld\n",res);
         }
     }
     return 0;

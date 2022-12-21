@@ -120,5 +120,7 @@
     "python.pythonPath": "C:\\Users\\Clouder\\AppData\\Local\\Programs\\Python\\Python37\\python.exe",
     "cSpell.words": [
         "pushdown"
-    ]
+    ],
+    "editor.fontFamily": "JetBrains Mono",
+    "editor.fontLigatures": true,
 }

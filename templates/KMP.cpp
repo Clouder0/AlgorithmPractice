@@ -18,7 +18,7 @@ int main()
     {
         while(k && s1[i] != s2[k + 1]) k = pi[k];
         if(s1[i] == s2[k + 1]) ++k;
-        if(k == len2) printf("%d\n",i - len2 + 1),k = pi[k];
+        if (k == len2) printf("%d\n", i - len2 + 1), k = pi[k];
     }
     for (int i = 1; i <= len2; ++i) printf("%d ", pi[i]);
     return 0;

@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        "*.sy": "json",
         "cstring": "cpp",
         "cstdio": "cpp",
         "algorithm": "cpp",
@@ -109,7 +110,8 @@
         "stacktrace": "cpp",
         "stop_token": "cpp",
         "syncstream": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "format": "cpp"
     },
     "python.linting.pylintEnabled": true,
     "python.linting.enabled": true,
